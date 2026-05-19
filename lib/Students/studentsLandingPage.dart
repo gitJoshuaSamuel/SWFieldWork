@@ -13,7 +13,7 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
   // Track which page is currently selected
   String _selectedPage = 'Dashboard';
 
-  // Helper to switch the body content
+  // Helper to switch the body contents
   Widget _buildBody() {
     switch (_selectedPage) {
       case 'Settings':
