@@ -47,11 +47,8 @@ class _LoginState extends State<Login> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Center(
-          child: CircularProgressIndicator(
-            color: Colors.black,
-          ),
-        ),
+        builder: (_) =>
+            const Center(child: CircularProgressIndicator(color: Colors.black)),
       );
 
       final response = await supabase.auth.signInWithPassword(
@@ -69,6 +66,10 @@ class _LoginState extends State<Login> {
           response.session != null &&
           response.user!.userMetadata?['role'] == 'Student') {
         Navigator.pushReplacementNamed(context, '/students-landing');
+      } else if (response.user != null &&
+          response.session != null &&
+          response.user!.userMetadata?['role'] == 'Admin') {
+        Navigator.pushReplacementNamed(context, '/professors-landing');
       } else {
         _showErrorDialog("Login failed. Please try again.");
       }
@@ -86,9 +87,7 @@ class _LoginState extends State<Login> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           "Login Error",
           style: GoogleFonts.inter(
@@ -99,10 +98,7 @@ class _LoginState extends State<Login> {
         ),
         content: Text(
           message,
-          style: GoogleFonts.inter(
-            color: Colors.black87,
-            fontSize: 15,
-          ),
+          style: GoogleFonts.inter(color: Colors.black87, fontSize: 15),
         ),
         actions: [
           TextButton(
@@ -198,7 +194,10 @@ class _LoginState extends State<Login> {
                       controller: _emailController,
                       validator: emailValidator,
                       style: GoogleFonts.inter(fontSize: 15),
-                      decoration: _inputDecoration('Email', Icons.email_outlined),
+                      decoration: _inputDecoration(
+                        'Email',
+                        Icons.email_outlined,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -206,7 +205,10 @@ class _LoginState extends State<Login> {
                       validator: passwordValidator,
                       obscureText: true,
                       style: GoogleFonts.inter(fontSize: 15),
-                      decoration: _inputDecoration('Password', Icons.lock_outline),
+                      decoration: _inputDecoration(
+                        'Password',
+                        Icons.lock_outline,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
