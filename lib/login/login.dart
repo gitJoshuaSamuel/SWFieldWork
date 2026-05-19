@@ -47,7 +47,11 @@ class _LoginState extends State<Login> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(
+            color: Colors.black,
+          ),
+        ),
       );
 
       final response = await supabase.auth.signInWithPassword(
@@ -81,25 +85,34 @@ class _LoginState extends State<Login> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         title: Text(
           "Login Error",
           style: GoogleFonts.inter(
             fontSize: 20,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
-        content: Text(message, style: GoogleFonts.inter(color: Colors.white)),
+        content: Text(
+          message,
+          style: GoogleFonts.inter(
+            color: Colors.black87,
+            fontSize: 15,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
               "OK",
               style: GoogleFonts.inter(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
               ),
             ),
           ),
@@ -108,65 +121,135 @@ class _LoginState extends State<Login> {
     );
   }
 
+  InputDecoration _inputDecoration(String labelText, IconData icon) {
+    return InputDecoration(
+      labelText: labelText,
+      labelStyle: GoogleFonts.inter(color: Colors.grey[600], fontSize: 14),
+      prefixIcon: Icon(icon, color: Colors.black87, size: 20),
+      filled: true,
+      fillColor: Colors.grey[50],
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.black, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: TextFormField(
-                controller: _emailController,
-                validator: emailValidator,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 0, // hide appBar for clean full screen login
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Form(
+              key: formKey,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 64,
+                      color: Colors.black,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      "Welcome Back",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Sign in to access your account",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+                    TextFormField(
+                      controller: _emailController,
+                      validator: emailValidator,
+                      style: GoogleFonts.inter(fontSize: 15),
+                      decoration: _inputDecoration('Email', Icons.email_outlined),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      validator: passwordValidator,
+                      obscureText: true,
+                      style: GoogleFonts.inter(fontSize: 15),
+                      decoration: _inputDecoration('Password', Icons.lock_outline),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Login',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const Signup()),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black87,
+                      ),
+                      child: Text(
+                        'Are you a Professor? Signup here',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(height: 20),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: TextFormField(
-                controller: _passwordController,
-                validator: passwordValidator,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            Align(
-              child: ElevatedButton(
-                onPressed: submitForm,
-                child: const Text('Login'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  minimumSize: Size(400, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      30,
-                    ), // Adjust width as needed
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            Align(
-              child: TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => Signup()),
-                ),
-                child: Text('Are you a Professor? Signup here'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

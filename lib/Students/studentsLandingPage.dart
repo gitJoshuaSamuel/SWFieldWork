@@ -1,6 +1,7 @@
 import 'package:field_work_2/Professors/createStudentsPage.dart';
 import 'package:field_work_2/Students/studentsDashboardPage.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Studentslandingpage extends StatefulWidget {
   const Studentslandingpage({super.key});
@@ -71,6 +72,21 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               onTap: () {
                 setState(() => _selectedPage = 'Settings');
                 Navigator.pop(context);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/Login',
+                    (route) => false,
+                  );
+                }
               },
             ),
           ],

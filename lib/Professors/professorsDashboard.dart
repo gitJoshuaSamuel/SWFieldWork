@@ -238,6 +238,7 @@ class AttendanceDataSource extends DataTableSource {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.joshua.socialworkFieldWork',
             ),
             MarkerLayer(
               markers: [

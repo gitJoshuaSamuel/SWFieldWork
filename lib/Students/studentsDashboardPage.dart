@@ -45,6 +45,53 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
   String? _activeRecordId;
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _checkActiveSession();
+  }
+
+  Future<void> _checkActiveSession() async {
+    setState(() => _isLoading = true);
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        final response = await supabase
+            .from('attendance_logs')
+            .select()
+            .eq('user_id', userId)
+            .order('check_in_time', ascending: false)
+            .limit(1);
+
+        if (response.isNotEmpty) {
+          final lastRecord = response.first;
+          final bool isCheckedIn = lastRecord['check_out_time'] == null;
+          if (isCheckedIn) {
+            setState(() {
+              _activeRecordId = lastRecord['id'];
+              _isCheckIn = false;
+              _selectedActivity = lastRecord['activity_type'] ?? 'Field Work';
+            });
+          } else {
+            setState(() {
+              _activeRecordId = null;
+              _isCheckIn = true;
+            });
+          }
+        } else {
+          setState(() {
+            _activeRecordId = null;
+            _isCheckIn = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking active session: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _handleAction() async {
     // 1. Check/Request Permissions
     LocationPermission permission = await Geolocator.checkPermission();
@@ -96,6 +143,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
               'check_in_lat': pos.latitude,
               'check_in_lng': pos.longitude,
               'check_in_img_url': imgUrl,
+              'check_in_time': DateTime.now().toIso8601String(),
             })
             .select()
             .single();
