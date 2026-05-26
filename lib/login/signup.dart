@@ -131,6 +131,11 @@ class _SignupState extends State<Signup> {
     final password = _passwordController.text.trim();
     final displayName = _displayNameController.text.trim();
 
+    String cleanCode = enteredSecretCode.trim();
+    int? parsedCode = int.tryParse(cleanCode);
+
+    print("PC: $parsedCode");
+
     try {
       final response = await supabase.auth.signUp(
         email: email,
@@ -141,6 +146,7 @@ class _SignupState extends State<Signup> {
           'role': 'Admin',
           'department': _selectedDepartment,
           'college': _selectedCollege,
+          'secret_code': parsedCode,
         },
       );
 
@@ -164,23 +170,23 @@ class _SignupState extends State<Signup> {
     }
   }
 
-  Future<void> navigateAfterLogin() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+  // Future<void> navigateAfterLogin() async {
+  //   final userId = Supabase.instance.client.auth.currentUser?.id;
 
-    final data = await Supabase.instance.client
-        .from('users')
-        .select('has_seen_onboarding')
-        .eq('id', userId!)
-        .single();
+  //   final data = await Supabase.instance.client
+  //       .from('users')
+  //       .select('has_seen_onboarding')
+  //       .eq('id', userId!)
+  //       .single();
 
-    final seen = data['has_seen_onboarding'] ?? false;
+  //   final seen = data['has_seen_onboarding'] ?? false;
 
-    if (seen) {
-      Navigator.pushReplacementNamed(context, '/landing');
-    } else {
-      Navigator.pushReplacementNamed(context, '/onboarding');
-    }
-  }
+  //   if (seen) {
+  //     Navigator.pushReplacementNamed(context, '/landing');
+  //   } else {
+  //     Navigator.pushReplacementNamed(context, '/onboarding');
+  //   }
+  // }
 
   void _showMessage(String title, String message, {VoidCallback? onOk}) {
     showDialog(
@@ -207,7 +213,7 @@ class _SignupState extends State<Signup> {
         actions: [
           TextButton(
             onPressed: () {
-              navigateAfterLogin();
+              // navigateAfterLogin();
               Navigator.of(context).pop();
               if (onOk != null) onOk();
             },
