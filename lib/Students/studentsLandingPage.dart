@@ -1,5 +1,6 @@
 import 'package:field_work_2/Professors/createStudentsPage.dart';
 import 'package:field_work_2/Students/studentsDashboardPage.dart';
+import 'package:field_work_2/Students/studentProfilePage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,10 +18,12 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
   // Helper to switch the body contents
   Widget _buildBody() {
     switch (_selectedPage) {
+      case 'Profile':
+        return const StudentProfilePage();
       case 'Settings':
         return const Center(child: Text("App Settings goes here"));
       default:
-        return AttendanceMainPage();
+        return const AttendanceMainPage();
     }
   }
 
@@ -62,6 +65,15 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               onTap: () {
                 setState(() => _selectedPage = 'Dashboard');
                 Navigator.pop(context); // Close the drawer
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Profile'),
+              selected: _selectedPage == 'Profile',
+              onTap: () {
+                setState(() => _selectedPage = 'Profile');
+                Navigator.pop(context);
               },
             ),
             const Divider(), // A visual line separator

@@ -1,5 +1,8 @@
 import 'package:field_work_2/Professors/createStudentsPage.dart';
-import 'package:field_work_2/Professors/professorsDashboard.dart';
+import 'package:field_work_2/Professors/collegeOptionsPage.dart';
+import 'package:field_work_2/Professors/collegeSchedulePage.dart';
+import 'package:field_work_2/Professors/professorsAnalyticsDashboard.dart';
+import 'package:field_work_2/Professors/attendanceLogsPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,18 +15,25 @@ class Professorslandingpage extends StatefulWidget {
 
 class _ProfessorslandingpageState extends State<Professorslandingpage> {
   // Track which page is currently selected
-  String _selectedPage = 'Dashboard';
+  String _selectedPage = 'Analytics Dashboard';
 
   // Helper to switch the body content
   Widget _buildBody() {
     switch (_selectedPage) {
       case 'Create students':
-        // return const Center(child: Text("Form to Create Students goes here"));
         return const Createstudentspage();
+      case 'Dropdown options':
+        return const CollegeOptionsPage();
+      case 'Analytics Dashboard':
+        return const ProfessorAnalyticsDashboard();
+      case 'Attendance Logs':
+        return const AttendanceLogsPage();
+      case 'Schedule & Settings':
+        return const CollegeSchedulePage();
       case 'Settings':
         return const Center(child: Text("App Settings goes here"));
       default:
-        return ProfessorDashboard();
+        return const ProfessorAnalyticsDashboard();
     }
   }
 
@@ -58,13 +68,32 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
                 ],
               ),
             ),
+
             ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text('Dashboard'),
-              selected: _selectedPage == 'Dashboard',
+              leading: const Icon(Icons.analytics_rounded),
+              title: const Text('Analytics Dashboard'),
+              selected: _selectedPage == 'Analytics Dashboard',
               onTap: () {
-                setState(() => _selectedPage = 'Dashboard');
-                Navigator.pop(context); // Close the drawer
+                setState(() => _selectedPage = 'Analytics Dashboard');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment_rounded),
+              title: const Text('Attendance Logs'),
+              selected: _selectedPage == 'Attendance Logs',
+              onTap: () {
+                setState(() => _selectedPage = 'Attendance Logs');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_rounded),
+              title: const Text('Schedule & Settings'),
+              selected: _selectedPage == 'Schedule & Settings',
+              onTap: () {
+                setState(() => _selectedPage = 'Schedule & Settings');
+                Navigator.pop(context);
               },
             ),
             ListTile(
@@ -73,6 +102,15 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
               selected: _selectedPage == 'Create students',
               onTap: () {
                 setState(() => _selectedPage = 'Create students');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_suggest_rounded),
+              title: const Text('Dropdown Options'),
+              selected: _selectedPage == 'Dropdown options',
+              onTap: () {
+                setState(() => _selectedPage = 'Dropdown options');
                 Navigator.pop(context);
               },
             ),

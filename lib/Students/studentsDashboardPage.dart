@@ -85,6 +85,10 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
   String _displayName = 'Student';
   bool _isAbsent = false;
 
+  String? _semester;
+  int? _collegeCode;
+  String? _reportDeadlineStr;
+
   @override
   void initState() {
     super.initState();
@@ -96,15 +100,34 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
-        // Fetch User Profile display_name
+        // Fetch User Profile display_name, college_code, semester
         final profileResponse = await supabase
             .from('profiles')
-            .select('display_name')
+            .select('display_name, college_code, semester')
             .eq('id', userId)
             .maybeSingle();
 
-        if (profileResponse != null && profileResponse['display_name'] != null) {
-          _displayName = profileResponse['display_name'] as String;
+        if (profileResponse != null) {
+          if (profileResponse['display_name'] != null) {
+            _displayName = profileResponse['display_name'] as String;
+          }
+          _semester = profileResponse['semester'] as String?;
+          final rawCode = profileResponse['college_code'];
+          if (rawCode != null) {
+            _collegeCode = int.tryParse(rawCode.toString());
+          }
+        }
+
+        // Fetch Schedule report_deadline if college_code is available
+        if (_collegeCode != null) {
+          final schedule = await supabase
+              .from('college_schedule')
+              .select('report_deadline')
+              .eq('college_code', _collegeCode!)
+              .maybeSingle();
+          if (schedule != null) {
+            _reportDeadlineStr = schedule['report_deadline']?.toString();
+          }
         }
 
         final response = await supabase
@@ -188,7 +211,29 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
       
       final nowStr = DateTime.now().toIso8601String();
       final isOneShot = _selectedActivity == 'Report' || _isAbsent;
-      final statusVal = _isAbsent ? 'Absent' : 'Present';
+      String statusVal = _isAbsent ? 'Absent' : 'Present';
+
+      if (_selectedActivity == 'Report') {
+        // Calculate On Time vs Late status based on deadline
+        if (_reportDeadlineStr != null) {
+          try {
+            final now = DateTime.now();
+            final parts = _reportDeadlineStr!.split(':');
+            final hour = int.parse(parts[0]);
+            final minute = int.parse(parts[1]);
+            final deadline = DateTime(now.year, now.month, now.day, hour, minute);
+            if (now.isBefore(deadline) || now.isAtSameMomentAs(deadline)) {
+              statusVal = 'On Time';
+            } else {
+              statusVal = 'Late';
+            }
+          } catch (_) {
+            statusVal = 'On Time';
+          }
+        } else {
+          statusVal = 'On Time'; // Fallback
+        }
+      }
 
       if (isOneShot) {
         // One-shot session completion: populate both check-in and check-out fields instantly
@@ -205,6 +250,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           'check_out_img_url': imgUrl,
           'check_out_time': nowStr,
           'is_active': false,
+          'semester': _semester,
         });
 
         setState(() {
@@ -226,6 +272,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                 'check_in_img_url': imgUrl,
                 'check_in_time': nowStr,
                 'is_active': true,
+                'semester': _semester,
               })
               .select()
               .single();
@@ -780,11 +827,26 @@ class AttendanceLogsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) {
+      return Center(
+        child: Text(
+          "No user logged in",
+          style: GoogleFonts.outfit(
+            fontSize: 16,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
 
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase
           .from('attendance_logs')
           .stream(primaryKey: ['id'])
+          .eq('user_id', userId)
           .order('check_in_time'),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -820,8 +882,21 @@ class AttendanceLogsView extends StatelessWidget {
           );
         }
 
-        // We show the list sorted descending (newest first) for better usability
-        final displayedLogs = List<Map<String, dynamic>>.from(logs).reversed.toList();
+        // We sort the list descending (newest first) based on check_in_time
+        final displayedLogs = List<Map<String, dynamic>>.from(logs);
+        displayedLogs.sort((a, b) {
+          final aTimeStr = a['check_in_time'] as String?;
+          final bTimeStr = b['check_in_time'] as String?;
+          if (aTimeStr == null && bTimeStr == null) return 0;
+          if (aTimeStr == null) return 1;
+          if (bTimeStr == null) return -1;
+          final aTime = DateTime.tryParse(aTimeStr);
+          final bTime = DateTime.tryParse(bTimeStr);
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
 
         return ListView.builder(
           physics: const BouncingScrollPhysics(),
