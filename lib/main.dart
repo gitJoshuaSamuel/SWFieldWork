@@ -3,7 +3,6 @@ import 'package:field_work_2/Students/studentsLandingPage.dart';
 import 'package:field_work_2/login/login.dart';
 import 'package:field_work_2/login/signup.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -25,7 +24,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/signup': (context) => const Signup(),
-        '/Login': (context) => Login(),
+        '/Login': (context) => const Login(),
         '/professors-landing': (context) => const Professorslandingpage(),
         '/students-landing': (context) => const Studentslandingpage(),
       },
@@ -40,7 +39,7 @@ class MyApp extends StatelessWidget {
           surface: Colors.grey[50], // The main background color
         ),
       ),
-      home: Login(),
+      home: const Login(),
     );
   }
 }

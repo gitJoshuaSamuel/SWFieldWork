@@ -1,4 +1,3 @@
-import 'package:field_work_2/Professors/createStudentsPage.dart';
 import 'package:field_work_2/Students/studentsDashboardPage.dart';
 import 'package:field_work_2/Students/studentProfilePage.dart';
 import 'package:flutter/material.dart';
@@ -91,14 +90,12 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Logout', style: TextStyle(color: Colors.red)),
               onTap: () async {
+                final navigator = Navigator.of(context);
                 await Supabase.instance.client.auth.signOut();
-                if (mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/Login',
-                    (route) => false,
-                  );
-                }
+                navigator.pushNamedAndRemoveUntil(
+                  '/Login',
+                  (route) => false,
+                );
               },
             ),
           ],

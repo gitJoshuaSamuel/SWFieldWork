@@ -37,17 +37,15 @@ class _SignupState extends State<Signup> {
   Future<void> _fetchColleges() async {
     try {
       final response = await supabase.from('colleges').select();
-      if (response is List) {
-        setState(() {
-          _collegesData = List<Map<String, dynamic>>.from(response);
-          _colleges = _collegesData
-              .map((e) => e['college_name']?.toString() ?? '')
-              .where((name) => name.isNotEmpty)
-              .toSet()
-              .toList();
-          _isLoadingColleges = false;
-        });
-      }
+      setState(() {
+        _collegesData = List<Map<String, dynamic>>.from(response);
+        _colleges = _collegesData
+            .map((e) => e['college_name']?.toString() ?? '')
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList();
+        _isLoadingColleges = false;
+      });
     } catch (e) {
       debugPrint("Error fetching colleges: $e");
       setState(() => _isLoadingColleges = false);
@@ -133,8 +131,6 @@ class _SignupState extends State<Signup> {
 
     String cleanCode = enteredSecretCode.trim();
     int? parsedCode = int.tryParse(cleanCode);
-
-    print("PC: $parsedCode");
 
     try {
       final response = await supabase.auth.signUp(

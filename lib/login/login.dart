@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Login extends StatefulWidget {
-  Login({super.key});
+  const Login({super.key});
 
   final String title = "Login Page";
 
@@ -40,8 +40,6 @@ class _LoginState extends State<Login> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    print("Email and password is: $email, $password");
-
     try {
       // Show loading dialog
       showDialog(
@@ -56,7 +54,8 @@ class _LoginState extends State<Login> {
         password: password,
       );
 
-      if (mounted) Navigator.pop(context); // remove loading dialog
+      if (!mounted) return;
+      Navigator.pop(context); // remove loading dialog
 
       if (response.user != null &&
           response.session != null &&
@@ -74,11 +73,15 @@ class _LoginState extends State<Login> {
         _showErrorDialog("Login failed. Please try again.");
       }
     } on AuthException catch (e) {
-      if (mounted) Navigator.pop(context);
-      _showErrorDialog(e.message); // Supabase auth error
+      if (mounted) {
+        Navigator.pop(context);
+        _showErrorDialog(e.message); // Supabase auth error
+      }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-      _showErrorDialog("Something went wrong. Please try again.");
+      if (mounted) {
+        Navigator.pop(context);
+        _showErrorDialog("Something went wrong. Please try again.");
+      }
     }
   }
 
