@@ -3,6 +3,8 @@ import '../Admin/updateStudentsPage.dart';
 import 'professorAnalyticsDashboard.dart';
 import '../Admin/attendanceLogsPage.dart';
 import '../Admin/attendanceExportPage.dart';
+import '../Admin/attendanceReportsPage.dart';
+import '../Admin/attendanceLogsManagerPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -55,8 +57,12 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
         return const ProfessorAnalyticsDashboard();
       case 'Attendance Logs':
         return const AttendanceLogsPage();
+      case 'Manage Attendance':
+        return const AttendanceLogsManagerPage();
       case 'Export Attendance':
         return const AttendanceExportPage();
+      case 'Performance Reports':
+        return const AttendanceReportsPage();
       case 'Settings':
         return const Center(child: Text("App Settings goes here"));
       default:
@@ -228,9 +234,19 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
                     pageKey: 'Attendance Logs',
                   ),
                   _buildDrawerItem(
+                    icon: Icons.edit_note_rounded,
+                    title: 'Manage Attendance',
+                    pageKey: 'Manage Attendance',
+                  ),
+                  _buildDrawerItem(
                     icon: Icons.download_rounded,
                     title: 'Export Attendance',
                     pageKey: 'Export Attendance',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.table_chart_rounded,
+                    title: 'Performance Reports',
+                    pageKey: 'Performance Reports',
                   ),
                   _buildDrawerItem(
                     icon: Icons.person_add_rounded,

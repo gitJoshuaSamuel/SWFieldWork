@@ -7,6 +7,8 @@ import 'collegeSchedulePage.dart';
 import 'AdminAnalyticsDashboard.dart';
 import 'attendanceLogsPage.dart';
 import 'attendanceExportPage.dart';
+import 'attendanceReportsPage.dart';
+import 'attendanceLogsManagerPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -65,8 +67,12 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
         return const AdminAnalyticsDashboard();
       case 'Attendance Logs':
         return const AttendanceLogsPage();
+      case 'Manage Attendance':
+        return const AttendanceLogsManagerPage();
       case 'Export Attendance':
         return const AttendanceExportPage();
+      case 'Performance Reports':
+        return const AttendanceReportsPage();
       case 'Schedule & Settings':
         return const CollegeSchedulePage();
       case 'Settings':
@@ -240,9 +246,19 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                     pageKey: 'Attendance Logs',
                   ),
                   _buildDrawerItem(
+                    icon: Icons.edit_note_rounded,
+                    title: 'Manage Attendance',
+                    pageKey: 'Manage Attendance',
+                  ),
+                  _buildDrawerItem(
                     icon: Icons.download_rounded,
                     title: 'Export Attendance',
                     pageKey: 'Export Attendance',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.table_chart_rounded,
+                    title: 'Performance Reports',
+                    pageKey: 'Performance Reports',
                   ),
                   _buildDrawerItem(
                     icon: Icons.calendar_month_rounded,
