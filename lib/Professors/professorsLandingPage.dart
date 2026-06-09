@@ -1,4 +1,5 @@
 import 'package:field_work_2/Professors/createStudentsPage.dart';
+import 'package:field_work_2/Professors/updateStudentsPage.dart';
 import 'package:field_work_2/Professors/collegeOptionsPage.dart';
 import 'package:field_work_2/Professors/collegeSchedulePage.dart';
 import 'package:field_work_2/Professors/professorsAnalyticsDashboard.dart';
@@ -49,6 +50,8 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
     switch (_selectedPage) {
       case 'Create students':
         return const Createstudentspage();
+      case 'Update students':
+        return const UpdateStudentsPage();
       case 'Dropdown options':
         return const CollegeOptionsPage();
       case 'Analytics Dashboard':
@@ -236,6 +239,11 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
                     icon: Icons.person_add_rounded,
                     title: 'Create Students',
                     pageKey: 'Create students',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.manage_accounts_rounded,
+                    title: 'Update Students',
+                    pageKey: 'Update students',
                   ),
                   _buildDrawerItem(
                     icon: Icons.settings_suggest_rounded,

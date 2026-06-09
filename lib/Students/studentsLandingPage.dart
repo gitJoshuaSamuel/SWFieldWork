@@ -1,5 +1,6 @@
 import 'package:field_work_2/Students/studentsDashboardPage.dart';
 import 'package:field_work_2/Students/studentProfilePage.dart';
+import 'package:field_work_2/Students/studentNotesPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,6 +20,8 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
     switch (_selectedPage) {
       case 'Profile':
         return const StudentProfilePage();
+      case 'Notes':
+        return const StudentNotesPage();
       case 'Settings':
         return const Center(child: Text("App Settings goes here"));
       default:
@@ -72,6 +75,15 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               selected: _selectedPage == 'Profile',
               onTap: () {
                 setState(() => _selectedPage = 'Profile');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.note_alt_outlined),
+              title: const Text('Notes'),
+              selected: _selectedPage == 'Notes',
+              onTap: () {
+                setState(() => _selectedPage = 'Notes');
                 Navigator.pop(context);
               },
             ),

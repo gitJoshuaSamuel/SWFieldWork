@@ -79,11 +79,14 @@ class AttendanceTrackerTab extends StatefulWidget {
 class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
   final supabase = Supabase.instance.client;
   String _selectedActivity = 'Field Work';
+  String _selectedFieldWorkType = 'Standard';
   bool _isCheckIn = true;
   String? _activeRecordId;
+  String? _activeCheckInTime;
   bool _isLoading = false;
   String _displayName = 'Student';
   bool _isAbsent = false;
+  bool _isHoliday = false;
 
   String? _semester;
   int? _collegeCode;
@@ -143,19 +146,24 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           if (isCheckedIn) {
             setState(() {
               _activeRecordId = lastRecord['id'];
+              _activeCheckInTime = lastRecord['check_in_time']?.toString();
               _isCheckIn = false;
               _selectedActivity = lastRecord['activity_type'] ?? 'Field Work';
+              _selectedFieldWorkType = lastRecord['field_work_type'] ?? 'Standard';
               _isAbsent = false; // Reset toggle if we are currently checked in
+              _isHoliday = false;
             });
           } else {
             setState(() {
               _activeRecordId = null;
+              _activeCheckInTime = null;
               _isCheckIn = true;
             });
           }
         } else {
           setState(() {
             _activeRecordId = null;
+            _activeCheckInTime = null;
             _isCheckIn = true;
           });
         }
@@ -210,10 +218,13 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
       final imgUrl = supabase.storage.from('attendance').getPublicUrl(path);
       
       final nowStr = DateTime.now().toIso8601String();
-      final isOneShot = _selectedActivity == 'Report' || _isAbsent;
-      String statusVal = _isAbsent ? 'Absent' : 'Present';
-
-      if (_selectedActivity == 'Report') {
+      final isOneShot = _selectedActivity == 'Report' || _isAbsent || _isHoliday;
+      String statusVal = 'Present';
+      if (_isAbsent) {
+        statusVal = 'Absent';
+      } else if (_isHoliday) {
+        statusVal = 'Holiday';
+      } else if (_selectedActivity == 'Report') {
         // Calculate On Time vs Late status based on deadline
         if (_reportDeadlineStr != null) {
           try {
@@ -251,12 +262,16 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           'check_out_time': nowStr,
           'is_active': false,
           'semester': _semester,
+          'field_work_type': _selectedActivity == 'Field Work'
+              ? (_isHoliday ? 'Holiday' : _selectedFieldWorkType)
+              : null,
         });
 
         setState(() {
           _activeRecordId = null;
           _isCheckIn = true;
-          _isAbsent = false; // Reset switch state
+          _isAbsent = false;
+          _isHoliday = false; // Reset switch state
         });
       } else {
         // Standard check-in / check-out session flow
@@ -273,15 +288,41 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                 'check_in_time': nowStr,
                 'is_active': true,
                 'semester': _semester,
+                'field_work_type': _selectedActivity == 'Field Work' ? _selectedFieldWorkType : null,
               })
               .select()
               .single();
 
           setState(() {
             _activeRecordId = res['id'];
+            _activeCheckInTime = nowStr;
             _isCheckIn = false;
           });
         } else {
+          double hoursLogged = 0.0;
+          String? checkInTimeStr = _activeCheckInTime;
+
+          if (checkInTimeStr == null) {
+            // Fetch check-in time from Supabase as a fallback
+            final record = await supabase
+                .from('attendance_logs')
+                .select('check_in_time')
+                .eq('id', _activeRecordId!)
+                .maybeSingle();
+            if (record != null) {
+              checkInTimeStr = record['check_in_time']?.toString();
+            }
+          }
+
+          if (checkInTimeStr != null) {
+            try {
+              final checkIn = DateTime.parse(checkInTimeStr);
+              final checkOut = DateTime.parse(nowStr);
+              final diff = checkOut.difference(checkIn);
+              hoursLogged = double.parse((diff.inMinutes / 60.0).toStringAsFixed(2));
+            } catch (_) {}
+          }
+
           await supabase
               .from('attendance_logs')
               .update({
@@ -290,11 +331,13 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                 'check_out_lng': pos.longitude,
                 'check_out_img_url': imgUrl,
                 'is_active': false,
+                'hours_logged': hoursLogged,
               })
               .eq('id', _activeRecordId!);
 
           setState(() {
             _activeRecordId = null;
+            _activeCheckInTime = null;
             _isCheckIn = true;
           });
         }
@@ -305,6 +348,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
         snackMessage = "Report submitted successfully!";
       } else if (_isAbsent) {
         snackMessage = "Absence recorded successfully!";
+      } else if (_isHoliday) {
+        snackMessage = "Holiday recorded successfully!";
       } else {
         snackMessage = _isCheckIn ? "Checked Out!" : "Checked In!";
       }
@@ -367,6 +412,11 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
       buttonSubtitle = "Tap to record absence";
       buttonGradient = [const Color(0xFFE53935), const Color(0xFFD32F2F)];
       shadowColor = const Color(0xFFE53935);
+    } else if (_isHoliday) {
+      buttonText = "RECORD HOLIDAY";
+      buttonSubtitle = "Tap to record holiday";
+      buttonGradient = [const Color(0xFFF2994A), const Color(0xFFF2C94C)]; // Golden orange gradient
+      shadowColor = const Color(0xFFF2C94C);
     } else {
       if (_selectedActivity == 'Conference' && _isCheckIn) {
         buttonText = "PRESENT";
@@ -505,12 +555,63 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                       onChanged: (v) {
                         setState(() {
                           _selectedActivity = v!;
+                          if (_selectedActivity != 'Field Work') {
+                            _isHoliday = false;
+                          }
                           if (_selectedActivity == 'Report') {
                             _isAbsent = false;
                           }
                         });
                       },
                     ),
+                    if (_selectedActivity == 'Field Work') ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        "Select Field Work Type",
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedFieldWorkType,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.assignment_turned_in_outlined, color: Colors.black54),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey[200]!, width: 1.5),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey[200]!, width: 1.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: Colors.black, width: 2),
+                          ),
+                        ),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black54),
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        dropdownColor: Colors.white,
+                        items: ['Standard', 'Compensatory', 'Additional']
+                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                            .toList(),
+                        onChanged: (v) {
+                          setState(() {
+                            _selectedFieldWorkType = v!;
+                          });
+                        },
+                      ),
+                    ],
                     if (_selectedActivity != 'Report') ...[
                       const SizedBox(height: 16),
                       Container(
@@ -549,6 +650,55 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                           onChanged: (bool value) {
                             setState(() {
                               _isAbsent = value;
+                              if (value) {
+                                _isHoliday = false;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                    if (_selectedActivity == 'Field Work') ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _isHoliday ? Colors.orange[50] : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _isHoliday ? Colors.orange[200]! : Colors.grey[200]!,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            "Mark as Holiday today",
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _isHoliday ? Colors.orange[900] : Colors.black87,
+                            ),
+                          ),
+                          subtitle: Text(
+                            "Toggle this if today is a field work holiday",
+                            style: GoogleFonts.outfit(
+                              fontSize: 12,
+                              color: _isHoliday ? Colors.orange[700] : Colors.grey[500],
+                            ),
+                          ),
+                          secondary: Icon(
+                            _isHoliday ? Icons.beach_access_rounded : Icons.beach_access_outlined,
+                            color: _isHoliday ? Colors.orange : Colors.grey,
+                          ),
+                          activeColor: Colors.orangeAccent,
+                          value: _isHoliday,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _isHoliday = value;
+                              if (value) {
+                                _isAbsent = false;
+                              }
                             });
                           },
                         ),
@@ -571,7 +721,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _selectedActivity,
+                                  _selectedActivity == 'Field Work' ? 'Field Work - $_selectedFieldWorkType' : _selectedActivity,
                                   style: GoogleFonts.outfit(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,

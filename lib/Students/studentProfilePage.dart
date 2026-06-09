@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:field_work_2/Students/studentProfileDetailsPage.dart';
 
 class StudentProfilePage extends StatefulWidget {
   const StudentProfilePage({super.key});
@@ -24,6 +25,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   // Requirements and Logs
   List<Map<String, dynamic>> _semesterRequirements = [];
   List<Map<String, dynamic>> _logs = [];
+
+  // Date range filter
+  DateTime? _rangeStartDate;
+  DateTime? _rangeEndDate;
 
   @override
   void initState() {
@@ -145,6 +150,27 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         l['status'] != 'Absent'
     ).length;
 
+    final int fwStandard = semesterLogs.where((l) =>
+        l['activity_type'] == 'Field Work' &&
+        l['check_out_time'] != null &&
+        l['status'] != 'Absent' &&
+        (l['field_work_type'] == 'Standard' || l['field_work_type'] == null)
+    ).length;
+
+    final int fwAdditional = semesterLogs.where((l) =>
+        l['activity_type'] == 'Field Work' &&
+        l['check_out_time'] != null &&
+        l['status'] != 'Absent' &&
+        l['field_work_type'] == 'Additional'
+    ).length;
+
+    final int fwCompensatory = semesterLogs.where((l) =>
+        l['activity_type'] == 'Field Work' &&
+        l['check_out_time'] != null &&
+        l['status'] != 'Absent' &&
+        l['field_work_type'] == 'Compensatory'
+    ).length;
+
     final int reportsOnTime = semesterLogs.where((l) =>
         l['activity_type'] == 'Report' &&
         l['status'] == 'On Time'
@@ -180,6 +206,57 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     final double repPercent = targetRep > 0 ? (reportsTotal / targetRep).clamp(0.0, 1.0) : 0.0;
     final double confPercent = targetConf > 0 ? (confAttended / targetConf).clamp(0.0, 1.0) : 0.0;
 
+    // Hours logged calculations
+    final now = DateTime.now();
+    final oneWeekAgo = now.subtract(const Duration(days: 7));
+    final oneMonthAgo = now.subtract(const Duration(days: 30));
+
+    final double lastWeekHours = _logs.where((l) {
+      if (l['activity_type'] != 'Field Work' || l['hours_logged'] == null) return false;
+      final checkInStr = l['check_in_time']?.toString();
+      if (checkInStr == null) return false;
+      try {
+        final dt = DateTime.parse(checkInStr);
+        return dt.isAfter(oneWeekAgo);
+      } catch (_) {
+        return false;
+      }
+    }).fold<double>(0.0, (sum, l) => sum + ((l['hours_logged'] as num?)?.toDouble() ?? 0.0));
+
+    final double lastMonthHours = _logs.where((l) {
+      if (l['activity_type'] != 'Field Work' || l['hours_logged'] == null) return false;
+      final checkInStr = l['check_in_time']?.toString();
+      if (checkInStr == null) return false;
+      try {
+        final dt = DateTime.parse(checkInStr);
+        return dt.isAfter(oneMonthAgo);
+      } catch (_) {
+        return false;
+      }
+    }).fold<double>(0.0, (sum, l) => sum + ((l['hours_logged'] as num?)?.toDouble() ?? 0.0));
+
+    final double semesterHours = semesterLogs
+        .where((l) => l['activity_type'] == 'Field Work' && l['hours_logged'] != null)
+        .fold<double>(0.0, (sum, l) => sum + ((l['hours_logged'] as num?)?.toDouble() ?? 0.0));
+
+    double? rangeHours;
+    if (_rangeStartDate != null && _rangeEndDate != null) {
+      final startMidnight = DateTime(_rangeStartDate!.year, _rangeStartDate!.month, _rangeStartDate!.day);
+      final endMidnight = DateTime(_rangeEndDate!.year, _rangeEndDate!.month, _rangeEndDate!.day, 23, 59, 59);
+
+      rangeHours = _logs.where((l) {
+        if (l['activity_type'] != 'Field Work' || l['hours_logged'] == null) return false;
+        final checkInStr = l['check_in_time']?.toString();
+        if (checkInStr == null) return false;
+        try {
+          final dt = DateTime.parse(checkInStr);
+          return dt.isAfter(startMidnight) && dt.isBefore(endMidnight);
+        } catch (_) {
+          return false;
+        }
+      }).fold<double>(0.0, (sum, l) => sum + ((l['hours_logged'] as num?)?.toDouble() ?? 0.0));
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
@@ -189,60 +266,76 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // --- PROFILE BANNER CARD ---
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF232526), Color(0xFF414345)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudentProfileDetailsPage(profile: _profile!),
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.white.withValues(alpha: 0.15),
-                      child: const Icon(Icons.person_outline_rounded, color: Colors.white, size: 32),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF232526), Color(0xFF414345)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            displayName,
-                            style: GoogleFonts.inter(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "Reg: $regNo",
-                            style: GoogleFonts.inter(fontSize: 13, color: Colors.white.withValues(alpha: 0.7)),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "$department | $college",
-                            style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.white.withValues(alpha: 0.15),
+                        child: const Icon(Icons.person_outline_rounded, color: Colors.white, size: 32),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: GoogleFonts.inter(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "Reg: $regNo",
+                              style: GoogleFonts.inter(fontSize: 13, color: Colors.white.withValues(alpha: 0.7)),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "$department | $college",
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 24,
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -292,7 +385,15 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       percentage: fwPercent,
                       color: Colors.blueAccent,
                       icon: Icons.work_history_rounded,
-                      extraDetails: const SizedBox.shrink(),
+                      extraDetails: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildDetailBadge("Standard: $fwStandard", Colors.blueAccent),
+                          _buildDetailBadge("Additional: $fwAdditional", Colors.teal),
+                          _buildDetailBadge("Compensatory: $fwCompensatory", Colors.orange),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
 
@@ -328,13 +429,229 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 32),
+                     const SizedBox(height: 32),
                   ],
                 ),
               ),
+
+              // --- HOURS LOGGED STATISTICS SECTION ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hours Logged Statistics",
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildHoursStatCard(
+                            title: "Last 7 Days",
+                            hours: lastWeekHours,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildHoursStatCard(
+                            title: "Last 30 Days",
+                            hours: lastMonthHours,
+                            color: Colors.teal,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildHoursStatCard(
+                            title: "This Semester",
+                            hours: semesterHours,
+                            color: Colors.indigoAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // --- CUSTOM DATE RANGE PICKER ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    side: BorderSide(color: Colors.grey[200]!, width: 1.5),
+                  ),
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.amber[50],
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.date_range_rounded, color: Colors.amber, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                "Custom Date Range Filter",
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ),
+                            if (_rangeStartDate != null && _rangeEndDate != null)
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                                onPressed: () {
+                                  setState(() {
+                                    _rangeStartDate = null;
+                                    _rangeEndDate = null;
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton(
+                          onPressed: () async {
+                            final DateTimeRange? picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(2025),
+                              lastDate: DateTime(2030),
+                              initialDateRange: _rangeStartDate != null && _rangeEndDate != null
+                                  ? DateTimeRange(start: _rangeStartDate!, end: _rangeEndDate!)
+                                  : null,
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Colors.black,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black87,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+
+                            if (picked != null) {
+                              setState(() {
+                                _rangeStartDate = picked.start;
+                                _rangeEndDate = picked.end;
+                              });
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            side: BorderSide(color: Colors.grey[200]!, width: 1.5),
+                          ),
+                          child: Text(
+                            _rangeStartDate != null && _rangeEndDate != null
+                                ? "${_rangeStartDate!.day}/${_rangeStartDate!.month}/${_rangeStartDate!.year} - ${_rangeEndDate!.day}/${_rangeEndDate!.month}/${_rangeEndDate!.year}"
+                                : "Select Date Range",
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        if (rangeHours != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[100]!),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Hours in Range:",
+                                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[600]),
+                                ),
+                                Text(
+                                  "${rangeHours.toStringAsFixed(2)} hrs",
+                                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHoursStatCard({
+    required String title,
+    required double hours,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[500],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "${hours.toStringAsFixed(1)} hrs",
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
