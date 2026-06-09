@@ -2,6 +2,7 @@ import '../Admin/createStudentsPage.dart';
 import '../Admin/updateStudentsPage.dart';
 import 'professorAnalyticsDashboard.dart';
 import '../Admin/attendanceLogsPage.dart';
+import '../Admin/attendanceExportPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -54,6 +55,8 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
         return const ProfessorAnalyticsDashboard();
       case 'Attendance Logs':
         return const AttendanceLogsPage();
+      case 'Export Attendance':
+        return const AttendanceExportPage();
       case 'Settings':
         return const Center(child: Text("App Settings goes here"));
       default:
@@ -223,6 +226,11 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
                     icon: Icons.assignment_rounded,
                     title: 'Attendance Logs',
                     pageKey: 'Attendance Logs',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.download_rounded,
+                    title: 'Export Attendance',
+                    pageKey: 'Export Attendance',
                   ),
                   _buildDrawerItem(
                     icon: Icons.person_add_rounded,
