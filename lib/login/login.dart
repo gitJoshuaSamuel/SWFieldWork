@@ -68,7 +68,7 @@ class _LoginState extends State<Login> {
       } else if (response.user != null &&
           response.session != null &&
           response.user!.userMetadata?['role'] == 'Admin') {
-        Navigator.pushReplacementNamed(context, '/professors-landing');
+        Navigator.pushReplacementNamed(context, '/admin-landing');
       } else {
         _showErrorDialog("Login failed. Please try again.");
       }

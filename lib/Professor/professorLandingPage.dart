@@ -1,23 +1,19 @@
-import 'package:field_work_2/Professors/createStudentsPage.dart';
-import 'package:field_work_2/Professors/updateStudentsPage.dart';
-import 'package:field_work_2/Professors/createProfessorsPage.dart';
-import 'package:field_work_2/Professors/updateProfessorsPage.dart';
-import 'package:field_work_2/Professors/collegeOptionsPage.dart';
-import 'package:field_work_2/Professors/collegeSchedulePage.dart';
-import 'package:field_work_2/Professors/professorsAnalyticsDashboard.dart';
-import 'package:field_work_2/Professors/attendanceLogsPage.dart';
+import '../Admin/createStudentsPage.dart';
+import '../Admin/updateStudentsPage.dart';
+import 'professorAnalyticsDashboard.dart';
+import '../Admin/attendanceLogsPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class Professorslandingpage extends StatefulWidget {
-  const Professorslandingpage({super.key});
+class ProfessorLandingPage extends StatefulWidget {
+  const ProfessorLandingPage({super.key});
 
   @override
-  State<Professorslandingpage> createState() => _ProfessorslandingpageState();
+  State<ProfessorLandingPage> createState() => _ProfessorLandingPageState();
 }
 
-class _ProfessorslandingpageState extends State<Professorslandingpage> {
+class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
   final supabase = Supabase.instance.client;
   String _selectedPage = 'Analytics Dashboard';
   String _professorName = 'Professor';
@@ -54,18 +50,10 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
         return const Createstudentspage();
       case 'Update students':
         return const UpdateStudentsPage();
-      case 'Create professors':
-        return const CreateProfessorsPage();
-      case 'Update professors':
-        return const UpdateProfessorsPage();
-      case 'Dropdown options':
-        return const CollegeOptionsPage();
       case 'Analytics Dashboard':
         return const ProfessorAnalyticsDashboard();
       case 'Attendance Logs':
         return const AttendanceLogsPage();
-      case 'Schedule & Settings':
-        return const CollegeSchedulePage();
       case 'Settings':
         return const Center(child: Text("App Settings goes here"));
       default:
@@ -237,11 +225,6 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
                     pageKey: 'Attendance Logs',
                   ),
                   _buildDrawerItem(
-                    icon: Icons.calendar_month_rounded,
-                    title: 'Schedule & Settings',
-                    pageKey: 'Schedule & Settings',
-                  ),
-                  _buildDrawerItem(
                     icon: Icons.person_add_rounded,
                     title: 'Create Students',
                     pageKey: 'Create students',
@@ -250,21 +233,6 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
                     icon: Icons.manage_accounts_rounded,
                     title: 'Update Students',
                     pageKey: 'Update students',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.group_add_rounded,
-                    title: 'Create Professors',
-                    pageKey: 'Create professors',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.admin_panel_settings_rounded,
-                    title: 'Update Professors',
-                    pageKey: 'Update professors',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.settings_suggest_rounded,
-                    title: 'Dropdown Options',
-                    pageKey: 'Dropdown options',
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),

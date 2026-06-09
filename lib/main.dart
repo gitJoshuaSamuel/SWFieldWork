@@ -1,4 +1,5 @@
-import 'package:field_work_2/Professors/professorsLandingPage.dart';
+import 'package:field_work_2/Admin/AdminLandingPage.dart';
+import 'package:field_work_2/Professor/professorLandingPage.dart';
 import 'package:field_work_2/Students/studentsLandingPage.dart';
 import 'package:field_work_2/login/login.dart';
 import 'package:field_work_2/login/signup.dart';
@@ -25,7 +26,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/signup': (context) => const Signup(),
         '/Login': (context) => const Login(),
-        '/professors-landing': (context) => const Professorslandingpage(),
+        '/admin-landing': (context) => const AdminLandingPage(),
+        '/professors-landing': (context) => const ProfessorLandingPage(),
         '/students-landing': (context) => const Studentslandingpage(),
       },
       theme: ThemeData(
