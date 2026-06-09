@@ -1,5 +1,7 @@
 import 'package:field_work_2/Professors/createStudentsPage.dart';
 import 'package:field_work_2/Professors/updateStudentsPage.dart';
+import 'package:field_work_2/Professors/createProfessorsPage.dart';
+import 'package:field_work_2/Professors/updateProfessorsPage.dart';
 import 'package:field_work_2/Professors/collegeOptionsPage.dart';
 import 'package:field_work_2/Professors/collegeSchedulePage.dart';
 import 'package:field_work_2/Professors/professorsAnalyticsDashboard.dart';
@@ -52,6 +54,10 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
         return const Createstudentspage();
       case 'Update students':
         return const UpdateStudentsPage();
+      case 'Create professors':
+        return const CreateProfessorsPage();
+      case 'Update professors':
+        return const UpdateProfessorsPage();
       case 'Dropdown options':
         return const CollegeOptionsPage();
       case 'Analytics Dashboard':
@@ -244,6 +250,16 @@ class _ProfessorslandingpageState extends State<Professorslandingpage> {
                     icon: Icons.manage_accounts_rounded,
                     title: 'Update Students',
                     pageKey: 'Update students',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.group_add_rounded,
+                    title: 'Create Professors',
+                    pageKey: 'Create professors',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.admin_panel_settings_rounded,
+                    title: 'Update Professors',
+                    pageKey: 'Update professors',
                   ),
                   _buildDrawerItem(
                     icon: Icons.settings_suggest_rounded,

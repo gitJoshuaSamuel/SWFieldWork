@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:field_work_2/Students/studentProfileDetailsPage.dart';
+import 'package:image_picker/image_picker.dart';
 
 class StudentProfilePage extends StatefulWidget {
   const StudentProfilePage({super.key});
@@ -108,6 +109,91 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       }
     } catch (e) {
       debugPrint("Error loading student profile details: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _uploadAvatar() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text("Take Photo"),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text("Choose from Gallery"),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: source,
+      imageQuality: 50,
+    );
+
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      final bytes = await image.readAsBytes();
+      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = '${user.id}/$fileName';
+
+      await supabase.storage
+          .from('avatars')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(contentType: 'image/jpeg'),
+          );
+
+      final avatarUrl = supabase.storage.from('avatars').getPublicUrl(path);
+
+      await supabase
+          .from('profiles')
+          .update({'avatar_url': avatarUrl})
+          .eq('id', user.id);
+
+      setState(() {
+        _profile!['avatar_url'] = avatarUrl;
+      });
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text("Profile picture updated successfully!", style: GoogleFonts.inter()),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text("Failed to upload image: $e", style: GoogleFonts.inter()),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -295,10 +381,39 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.white.withValues(alpha: 0.15),
-                        child: const Icon(Icons.person_outline_rounded, color: Colors.white, size: 32),
+                      GestureDetector(
+                        onTap: _uploadAvatar,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Colors.white.withValues(alpha: 0.15),
+                              backgroundImage: _profile!['avatar_url'] != null
+                                  ? NetworkImage(_profile!['avatar_url']?.toString() ?? '')
+                                  : null,
+                              child: _profile!['avatar_url'] == null
+                                  ? const Icon(Icons.person_outline_rounded, color: Colors.white, size: 32)
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(

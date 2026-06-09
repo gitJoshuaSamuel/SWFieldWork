@@ -62,7 +62,12 @@ class StudentProfileDetailsPage extends StatelessWidget {
                     CircleAvatar(
                       radius: 40,
                       backgroundColor: Colors.white.withValues(alpha: 0.15),
-                      child: const Icon(Icons.person_rounded, color: Colors.white, size: 44),
+                      backgroundImage: profile['avatar_url'] != null
+                          ? NetworkImage(profile['avatar_url']?.toString() ?? '')
+                          : null,
+                      child: profile['avatar_url'] == null
+                          ? const Icon(Icons.person_rounded, color: Colors.white, size: 44)
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     Text(
