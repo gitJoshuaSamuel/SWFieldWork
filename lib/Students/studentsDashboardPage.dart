@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'studentFilteredLogsPage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
@@ -454,7 +455,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
 
   Widget _buildUnifiedStatsCard(String clockedHoursText) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -473,18 +474,42 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             icon: Icons.access_time_rounded,
             title: "Field work hours",
             value: clockedHoursText,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StudentFilteredLogsPage(
+                  filterActivity: 'Field Work',
+                ),
+              ),
+            ),
           ),
-          Divider(height: 24, color: Colors.grey[200]),
+          Divider(height: 16, color: Colors.grey[200]),
           _buildStatRow(
             icon: Icons.assignment_outlined,
             title: "Reports",
             value: "$_reportsTotal",
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StudentFilteredLogsPage(
+                  filterActivity: 'Report',
+                ),
+              ),
+            ),
           ),
-          Divider(height: 24, color: Colors.grey[200]),
+          Divider(height: 16, color: Colors.grey[200]),
           _buildStatRow(
             icon: Icons.forum_outlined,
             title: "Confs",
             value: "$_confAttended",
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StudentFilteredLogsPage(
+                  filterActivity: 'Conference',
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -495,36 +520,46 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
     required IconData icon,
     required String title,
     required String value,
+    required VoidCallback onTap,
   }) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: const Color(0xFF1E88E5), size: 20),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: const Color(0xFF1E88E5), size: 20),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1E88E5),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+          ],
         ),
-        const SizedBox(width: 16),
-        Text(
-          title,
-          style: GoogleFonts.outfit(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const Spacer(),
-        Text(
-          value,
-          style: GoogleFonts.outfit(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF1E88E5),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
