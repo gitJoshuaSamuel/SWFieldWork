@@ -14,6 +14,43 @@ class Studentslandingpage extends StatefulWidget {
 class _StudentslandingpageState extends State<Studentslandingpage> {
   // Track which page is currently selected
   String _selectedPage = 'Dashboard';
+  String? _avatarUrl;
+  final supabase = Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudentAvatar();
+  }
+
+  Future<void> _loadStudentAvatar() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        final res = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', userId)
+            .maybeSingle();
+        if (res != null && res['avatar_url'] != null) {
+          if (mounted) {
+            setState(() {
+              _avatarUrl = res['avatar_url'] as String;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading avatar in landing page: $e");
+    }
+  }
+
+  void _changePage(String page) {
+    setState(() {
+      _selectedPage = page;
+    });
+    _loadStudentAvatar();
+  }
 
   // Helper to switch the body contents
   Widget _buildBody() {
@@ -31,11 +68,44 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDashboard = _selectedPage == 'Dashboard';
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectedPage),
-        backgroundColor: Colors.black,
+        title: isDashboard ? null : Text(_selectedPage),
+        backgroundColor: isDashboard ? const Color(0xFF1E88E5) : Colors.black,
         foregroundColor: Colors.white,
+        elevation: 0,
+        actions: isDashboard
+            ? [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedPage = 'Profile';
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white24,
+                        backgroundImage: _avatarUrl != null
+                            ? NetworkImage(_avatarUrl!)
+                            : null,
+                        child: _avatarUrl == null
+                            ? const Icon(Icons.person, color: Colors.white, size: 20)
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
+              ]
+            : null,
       ),
       // This adds the "hamburger" icon automatically
       drawer: Drawer(
@@ -65,7 +135,7 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               title: const Text('Dashboard'),
               selected: _selectedPage == 'Dashboard',
               onTap: () {
-                setState(() => _selectedPage = 'Dashboard');
+                _changePage('Dashboard');
                 Navigator.pop(context); // Close the drawer
               },
             ),
@@ -74,7 +144,7 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               title: const Text('Profile'),
               selected: _selectedPage == 'Profile',
               onTap: () {
-                setState(() => _selectedPage = 'Profile');
+                _changePage('Profile');
                 Navigator.pop(context);
               },
             ),
@@ -83,7 +153,7 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               title: const Text('Notes'),
               selected: _selectedPage == 'Notes',
               onTap: () {
-                setState(() => _selectedPage = 'Notes');
+                _changePage('Notes');
                 Navigator.pop(context);
               },
             ),
@@ -93,7 +163,7 @@ class _StudentslandingpageState extends State<Studentslandingpage> {
               title: const Text('Settings'),
               selected: _selectedPage == 'Settings',
               onTap: () {
-                setState(() => _selectedPage = 'Settings');
+                _changePage('Settings');
                 Navigator.pop(context);
               },
             ),
