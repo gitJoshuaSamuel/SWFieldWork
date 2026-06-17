@@ -50,7 +50,9 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
   Widget _buildBody() {
     switch (_selectedPage) {
       case 'Daily Report':
-        return const ProfessorAnalyticsDashboard();
+        return const ProfessorAnalyticsDashboard(onlyMyStudents: false);
+      case 'My Students':
+        return const ProfessorAnalyticsDashboard(onlyMyStudents: true);
       case 'Defaulters View':
         return const AttendanceExceptionsPage();
       case 'Table View':
@@ -197,6 +199,11 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
                     icon: Icons.analytics_rounded,
                     title: 'Daily Report',
                     pageKey: 'Daily Report',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.group_rounded,
+                    title: 'My Students',
+                    pageKey: 'My Students',
                   ),
                   _buildDrawerItem(
                     icon: Icons.assignment_late_rounded,

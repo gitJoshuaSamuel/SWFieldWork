@@ -6,7 +6,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 class ProfessorAnalyticsDashboard extends StatefulWidget {
-  const ProfessorAnalyticsDashboard({super.key});
+  final bool onlyMyStudents;
+  const ProfessorAnalyticsDashboard({super.key, this.onlyMyStudents = false});
 
   @override
   State<ProfessorAnalyticsDashboard> createState() => _ProfessorAnalyticsDashboardState();
@@ -77,12 +78,14 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
         // 1. Get college code
         final profile = await supabase
             .from('profiles')
-            .select('secret_code, college_code')
+            .select('display_name, secret_code, college_code')
             .eq('id', user.id)
             .maybeSingle();
 
         int? code;
+        String? profName;
         if (profile != null) {
+          profName = profile['display_name']?.toString();
           final rawCode = profile['secret_code'] ?? profile['college_code'];
           if (rawCode != null) {
             code = int.tryParse(rawCode.toString());
@@ -94,6 +97,10 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
           if (rawCode != null) {
             code = int.tryParse(rawCode.toString());
           }
+        }
+
+        if (profName == null) {
+          profName = user.userMetadata?['display_name']?.toString();
         }
 
         if (code != null) {
@@ -146,20 +153,30 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
           final List<Map<String, dynamic>> allProfiles = List<Map<String, dynamic>>.from(studentsData);
           final filteredStudents = allProfiles.where((p) {
             final pCode = p['college_code'] ?? p['secret_code'];
-            return pCode?.toString() == code.toString();
+            final matchesCollege = pCode?.toString() == code.toString();
+            if (widget.onlyMyStudents) {
+              final belongsToProf = p['related_professor']?.toString().toLowerCase().trim() == profName?.toLowerCase().trim();
+              return matchesCollege && belongsToProf;
+            }
+            return matchesCollege;
           }).toList();
 
           // 6. Fetch Attendance Logs
           final logsData = await supabase
               .from('attendance_logs')
-              .select('*, profiles(id, display_name, college_code, class, batch, semester, registration_no, faculty_supervisor, agency_supervisor, organisation_placed)')
+              .select('*, profiles(id, display_name, college_code, class, batch, semester, registration_no, faculty_supervisor, agency_supervisor, organisation_placed, related_professor)')
               .order('check_in_time', ascending: false);
 
           final List<Map<String, dynamic>> allLogs = List<Map<String, dynamic>>.from(logsData);
           final filteredLogs = allLogs.where((log) {
             if (log['profiles'] == null) return false;
             final lCode = log['profiles']['college_code'];
-            return lCode?.toString() == code.toString();
+            final matchesCollege = lCode?.toString() == code.toString();
+            if (widget.onlyMyStudents) {
+              final belongsToProf = log['profiles']['related_professor']?.toString().toLowerCase().trim() == profName?.toLowerCase().trim();
+              return matchesCollege && belongsToProf;
+            }
+            return matchesCollege;
           }).toList();
 
           setState(() {
