@@ -21,6 +21,8 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
   List<Map<String, dynamic>> _logs = [];
   List<String> _semesters = [];
   String? _selectedSemester;
+  List<String> _batches = [];
+  String? _selectedBatch;
 
   // Configuration thresholds
   double _weeklyQuota = 24.0;
@@ -106,23 +108,35 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
         if (code != null) {
           _collegeCode = code;
 
-          // 2. Fetch Semester Options
+          // 2. Fetch Semester & Batch Options
           final optionsData = await supabase
               .from('college_options')
-              .select('value')
+              .select('category, value')
               .eq('college_code', code)
-              .eq('category', 'semester');
+              .inFilter('category', ['semester', 'batch']);
 
-          final List<String> loadedSems =
-              List<Map<String, dynamic>>.from(optionsData)
-                  .map((e) => e['value']?.toString().trim() ?? '')
-                  .where((v) => v.isNotEmpty)
-                  .toSet()
-                  .toList();
+          final List<String> loadedSems = [];
+          final List<String> loadedBatches = [];
 
-          _semesters = loadedSems;
+          for (var opt in optionsData) {
+            final cat = opt['category']?.toString().toLowerCase().trim() ?? '';
+            final val = opt['value']?.toString().trim() ?? '';
+            if (val.isEmpty) continue;
+            if (cat == 'semester') {
+              loadedSems.add(val);
+            } else if (cat == 'batch') {
+              loadedBatches.add(val);
+            }
+          }
+
+          _semesters = loadedSems.toSet().toList();
+          _batches = loadedBatches.toSet().toList();
+
           if (_selectedSemester == null && _semesters.isNotEmpty) {
             _selectedSemester = _semesters.first;
+          }
+          if (_selectedBatch == null && _batches.isNotEmpty) {
+            _selectedBatch = _batches.first;
           }
 
           // 3. Fetch Targets (Weekly FW & Monthly FW)
@@ -234,21 +248,23 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
 
   // ABSENT LIST & LOGS FETCH
   List<Map<String, dynamic>> _getAbsentStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    // Filter students belonging to the selected semester
-    final semStudents = _students
+    // Filter students belonging to the selected batch & semester
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -282,20 +298,22 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
 
   // WEEKLY LOW HOURS LIST
   List<Map<String, dynamic>> _getWeeklyLowStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    final semStudents = _students
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -342,20 +360,22 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
 
   // MONTHLY LOW HOURS LIST
   List<Map<String, dynamic>> _getMonthlyLowStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    final semStudents = _students
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -401,20 +421,22 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
   }
 
   List<Map<String, dynamic>> _getLateReportsStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    final semStudents = _students
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -446,20 +468,22 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
   }
 
   List<Map<String, dynamic>> _getLateReportsMonthStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    final semStudents = _students
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -497,20 +521,22 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
   }
 
   List<Map<String, dynamic>> _getConfAbsentSemesterStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    final semStudents = _students
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -542,20 +568,22 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
   }
 
   List<Map<String, dynamic>> _getConfAbsentMonthStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    final semStudents = _students
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -593,20 +621,22 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
   }
 
   List<Map<String, dynamic>> _getConfAbsentWeekStudents() {
-    if (_selectedSemester == null) return [];
+    if (_selectedSemester == null || _selectedBatch == null) return [];
 
-    final semStudents = _students
+    final filteredStudents = _students
         .where(
-          (s) => _matchesSemester(
-            null,
-            s['semester']?.toString(),
-            _selectedSemester!,
-          ),
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
         )
         .toList();
     final List<Map<String, dynamic>> result = [];
 
-    for (var student in semStudents) {
+    for (var student in filteredStudents) {
       final sId = student['id']?.toString();
       if (sId == null) continue;
 
@@ -1018,6 +1048,28 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
     );
   }
 
+  Widget _buildDropdownContainer({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(child: child),
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4.0, top: 24.0, bottom: 12.0),
@@ -1182,37 +1234,13 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                 vertical: 12.0,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Exceptions",
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  // Semester Dropdown
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: DropdownButtonHideUnderline(
+                  // Batch Dropdown
+                  Expanded(
+                    child: _buildDropdownContainer(
                       child: DropdownButton<String>(
-                        value: _selectedSemester,
+                        isExpanded: true,
+                        value: _batches.contains(_selectedBatch) ? _selectedBatch : null,
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -1220,10 +1248,42 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         ),
                         dropdownColor: Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        hint: const Text("Batch"),
+                        items: _batches.map((batch) {
+                          return DropdownMenuItem<String>(
+                            value: batch,
+                            child: Text(batch, overflow: TextOverflow.ellipsis),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedBatch = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Semester Dropdown
+                  Expanded(
+                    child: _buildDropdownContainer(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _semesters.contains(_selectedSemester) ? _selectedSemester : null,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        dropdownColor: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        hint: const Text("Semester"),
                         items: _semesters.map((sem) {
                           return DropdownMenuItem<String>(
                             value: sem,
-                            child: Text(sem),
+                            child: Text(sem, overflow: TextOverflow.ellipsis),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -1263,11 +1323,11 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         value: absentStudentsList.length.toString(),
                         icon: Icons.cancel_schedule_send_rounded,
                         colors: const [Color(0xFF1E3A8A), Color(0xFF1E40AF)],
-                        quotaLabel: "In $_selectedSemester",
+                        quotaLabel: "Batch $_selectedBatch | $_selectedSemester",
                         onTap: () => _navigateToStudentList(
                           title: "Field Work Absents",
                           description:
-                              "Students in $_selectedSemester with at least one absent field work day",
+                              "Students in $_selectedSemester (Batch $_selectedBatch) with at least one absent field work day",
                           studentsList: absentStudentsList,
                           activeTab: 'absent',
                         ),
@@ -1281,7 +1341,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         onTap: () => _navigateToStudentList(
                           title: "Weekly Threshold Violations",
                           description:
-                              "Students who logged less than $_weeklyQuota hrs last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
+                              "Students in Batch $_selectedBatch who logged less than $_weeklyQuota hrs last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
                           studentsList: weeklyLowList,
                           activeTab: 'weekly',
                         ),
@@ -1295,7 +1355,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         onTap: () => _navigateToStudentList(
                           title: "Monthly Threshold Violations",
                           description:
-                              "Students who logged less than $_monthlyQuota hrs last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
+                              "Students in Batch $_selectedBatch who logged less than $_monthlyQuota hrs last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
                           studentsList: monthlyLowList,
                           activeTab: 'monthly',
                         ),
@@ -1317,11 +1377,11 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         value: lateReportsList.length.toString(),
                         icon: Icons.warning_amber_rounded,
                         colors: const [Color(0xFF115E59), Color(0xFF0F766E)],
-                        quotaLabel: "In $_selectedSemester",
+                        quotaLabel: "Batch $_selectedBatch | $_selectedSemester",
                         onTap: () => _navigateToStudentList(
                           title: "Late Report Submissions",
                           description:
-                              "Students in $_selectedSemester who submitted report(s) late this semester",
+                              "Students in $_selectedSemester (Batch $_selectedBatch) who submitted report(s) late this semester",
                           studentsList: lateReportsList,
                           activeTab: 'late_reports',
                         ),
@@ -1335,7 +1395,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         onTap: () => _navigateToStudentList(
                           title: "Monthly Late Reports",
                           description:
-                              "Students who submitted report(s) late last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
+                              "Students in Batch $_selectedBatch who submitted report(s) late last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
                           studentsList: lateReportsMonthList,
                           activeTab: 'late_reports_month',
                         ),
@@ -1357,11 +1417,11 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         value: confAbsentSemList.length.toString(),
                         icon: Icons.forum_rounded,
                         colors: const [Color(0xFF581C87), Color(0xFF701A75)],
-                        quotaLabel: "In $_selectedSemester",
+                        quotaLabel: "Batch $_selectedBatch | $_selectedSemester",
                         onTap: () => _navigateToStudentList(
                           title: "Conf Absentees (Semester)",
                           description:
-                              "Students in $_selectedSemester who were absent for conference day(s) this semester",
+                              "Students in $_selectedSemester (Batch $_selectedBatch) who were absent for conference day(s) this semester",
                           studentsList: confAbsentSemList,
                           activeTab: 'conf_absent_sem',
                         ),
@@ -1375,7 +1435,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         onTap: () => _navigateToStudentList(
                           title: "Conf Absentees (Last Month)",
                           description:
-                              "Students who were absent for conference day(s) last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
+                              "Students in Batch $_selectedBatch who were absent for conference day(s) last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
                           studentsList: confAbsentMonthList,
                           activeTab: 'conf_absent_month',
                         ),
@@ -1389,7 +1449,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                         onTap: () => _navigateToStudentList(
                           title: "Conf Absentees (Last Week)",
                           description:
-                              "Students who were absent for conference day(s) last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
+                              "Students in Batch $_selectedBatch who were absent for conference day(s) last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
                           studentsList: confAbsentWeekList,
                           activeTab: 'conf_absent_week',
                         ),

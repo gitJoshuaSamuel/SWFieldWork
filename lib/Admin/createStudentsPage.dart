@@ -325,15 +325,18 @@ class _CreatestudentspageState extends State<Createstudentspage> {
     final displayItems = items.where((e) => e.trim().isNotEmpty).toList();
 
     return DropdownButtonFormField<String>(
+      isExpanded: true,
       value: displayItems.contains(currentValue) ? currentValue : null,
       decoration: _inputDecoration(labelText, icon),
       hint: Text(
         "Select $labelText",
         style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13),
+        overflow: TextOverflow.ellipsis,
       ),
       disabledHint: Text(
         "No $labelText options set in DB",
         style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 13),
+        overflow: TextOverflow.ellipsis,
       ),
       dropdownColor: Colors.white,
       style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
@@ -342,7 +345,10 @@ class _CreatestudentspageState extends State<Createstudentspage> {
           : displayItems
               .map((e) => DropdownMenuItem<String>(
                     value: e,
-                    child: Text(e),
+                    child: Text(
+                      e,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ))
               .toList(),
       onChanged: displayItems.isEmpty ? null : onChanged,
