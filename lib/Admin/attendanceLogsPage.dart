@@ -26,13 +26,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
   String _studentPickerSearch = '';
 
   // Dynamic Grouping Levels
-  String _groupLevel1 = 'Semester';
-  String _groupLevel2 = 'Activity Type';
-  String _groupLevel3 = 'Status';
-  String _groupLevel4 = 'Student Name';
+  String _groupLevel1 = 'None';
+  String _groupLevel2 = 'None';
+  String _groupLevel3 = 'None';
+  String _groupLevel4 = 'None';
 
   final List<String> _groupingOptions = [
     'None',
+    'Batch',
     'Semester',
     'Activity Type',
     'Status',
@@ -267,6 +268,19 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
     final checkOutStr = checkOut != null ? DateFormat('hh:mm a').format(checkOut) : '--:--';
     final hasCoords = log['check_in_lat'] != null && log['check_in_lng'] != null;
 
+    double hours = 0.0;
+    if (log['hours_logged'] != null) {
+      hours = (log['hours_logged'] as num).toDouble();
+    } else if (log['check_in_time'] != null && log['check_out_time'] != null) {
+      final inT = DateTime.parse(log['check_in_time'].toString());
+      final outT = DateTime.parse(log['check_out_time'].toString());
+      hours = outT.difference(inT).inMinutes / 60.0;
+    }
+
+    final int h = hours.toInt();
+    final int m = ((hours - h) * 60).round();
+    final String durationStr = "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -366,6 +380,16 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                     Text(status, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: _getStatusColor(status))),
                                   ],
                                 ),
+                                if (hours > 0 || checkOut != null) ...[
+                                  const Divider(height: 16),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text("Total Time Logged", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
+                                      Text(durationStr, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                                    ],
+                                  ),
+                                ],
                                 const Divider(height: 16),
                                 if (activityType == 'Field Work') ...[
                                   Row(
@@ -499,6 +523,7 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
 
   Color _getGroupColor(String field) {
     if (field == 'Semester') return Colors.indigo[800]!;
+    if (field == 'Batch') return Colors.orange[800]!;
     if (field == 'Activity Type') return Colors.teal[800]!;
     if (field == 'Status') return Colors.purple[800]!;
     if (field == 'Student Name') return Colors.pink[800]!;
@@ -518,6 +543,19 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
     final dateStr = checkIn != null ? DateFormat('dd/MM/yyyy').format(checkIn) : 'N/A';
     final checkInStr = checkIn != null ? DateFormat('hh:mm a').format(checkIn) : '--:--';
     final checkOutStr = checkOut != null ? DateFormat('hh:mm a').format(checkOut) : 'Active';
+
+    double hours = 0.0;
+    if (log['hours_logged'] != null) {
+      hours = (log['hours_logged'] as num).toDouble();
+    } else if (log['check_in_time'] != null && log['check_out_time'] != null) {
+      final inT = DateTime.parse(log['check_in_time'].toString());
+      final outT = DateTime.parse(log['check_out_time'].toString());
+      hours = outT.difference(inT).inMinutes / 60.0;
+    }
+
+    final int h = hours.toInt();
+    final int m = ((hours - h) * 60).round();
+    final String durationStr = "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
 
     return Card(
       elevation: 0,
@@ -571,7 +609,7 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                 ],
               ),
               const Divider(height: 12),
-              if (activityType == 'Field Work')
+              if (activityType == 'Field Work') ...[
                 Row(
                   children: [
                     Icon(Icons.login_rounded, size: 12, color: Colors.green[600]),
@@ -582,16 +620,54 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                     const SizedBox(width: 4),
                     Text("Out: $checkOutStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
                   ],
-                )
-              else if (activityType == 'Report')
+                ),
+                if (hours > 0 || checkOut != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.blue[100]!),
+                    ),
+                    child: Text(
+                      "Hours: $durationStr",
+                      style: GoogleFonts.inter(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[800],
+                      ),
+                    ),
+                  ),
+                ],
+              ] else if (activityType == 'Report') ...[
                 Row(
                   children: [
                     Icon(Icons.description_rounded, size: 12, color: Colors.teal[600]),
                     const SizedBox(width: 4),
                     Text("Report Submitted: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
                   ],
-                )
-              else if (activityType == 'Conference')
+                ),
+                if (hours > 0) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.teal[50],
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.teal[100]!),
+                    ),
+                    child: Text(
+                      "Hours: $durationStr",
+                      style: GoogleFonts.inter(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal[800],
+                      ),
+                    ),
+                  ),
+                ],
+              ] else if (activityType == 'Conference') ...[
                 Row(
                   children: [
                     Icon(Icons.forum_rounded, size: 12, color: Colors.purple[600]),
@@ -599,6 +675,26 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                     Text("Conference In: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
                   ],
                 ),
+                if (hours > 0) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.purple[50],
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.purple[100]!),
+                    ),
+                    child: Text(
+                      "Hours: $durationStr",
+                      style: GoogleFonts.inter(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple[800],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ],
           ),
         ),
@@ -620,6 +716,8 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
       String key = 'Unknown';
       if (field == 'Semester') {
         key = profile['semester']?.toString() ?? 'Unknown Semester';
+      } else if (field == 'Batch') {
+        key = item['batch']?.toString() ?? profile['batch']?.toString() ?? 'Unknown Batch';
       } else if (field == 'Activity Type') {
         key = item['activity_type']?.toString() ?? 'Unknown Activity';
       } else if (field == 'Status') {

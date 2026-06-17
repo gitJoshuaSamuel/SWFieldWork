@@ -1086,6 +1086,7 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
                       value: widget.statusOptions.contains(_selectedStatus) ? _selectedStatus : widget.statusOptions.first,
                       decoration: InputDecoration(
                         labelText: "Status",
@@ -1099,7 +1100,15 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                         ),
                       ),
                       items: widget.statusOptions
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.inter(fontSize: 13))))
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e,
+                                  style: GoogleFonts.inter(fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ))
                           .toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _selectedStatus = val);
@@ -1109,6 +1118,7 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
                       value: widget.activityOptions.contains(_selectedActivity) ? _selectedActivity : widget.activityOptions.first,
                       decoration: InputDecoration(
                         labelText: "Activity Type",
@@ -1122,7 +1132,15 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                         ),
                       ),
                       items: widget.activityOptions
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.inter(fontSize: 13))))
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e,
+                                  style: GoogleFonts.inter(fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ))
                           .toList(),
                       onChanged: (val) {
                         if (val != null) {
@@ -1147,6 +1165,7 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
                       value: widget.semesters.contains(_selectedSemester) ? _selectedSemester : (widget.semesters.isNotEmpty ? widget.semesters.first : null),
                       decoration: InputDecoration(
                         labelText: "Semester",
@@ -1160,7 +1179,15 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                         ),
                       ),
                       items: widget.semesters
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.inter(fontSize: 13))))
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e,
+                                  style: GoogleFonts.inter(fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ))
                           .toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _selectedSemester = val);
@@ -1171,6 +1198,7 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         value: widget.fieldWorkTypeOptions.contains(_selectedFieldWorkType)
                             ? _selectedFieldWorkType
                             : widget.fieldWorkTypeOptions.first,
@@ -1186,7 +1214,15 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                           ),
                         ),
                         items: widget.fieldWorkTypeOptions
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.inter(fontSize: 13))))
+                            .map((e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(
+                                    e,
+                                    style: GoogleFonts.inter(fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ))
                             .toList(),
                         onChanged: (val) {
                           if (val != null) setState(() => _selectedFieldWorkType = val);
