@@ -1036,79 +1036,76 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
     required String title,
     required String value,
     required IconData icon,
-    required Color color,
+    required List<Color> colors,
     required String quotaLabel,
     required VoidCallback onTap,
   }) {
-    return AspectRatio(
-      aspectRatio: 0.78,
-      child: Card(
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: Colors.black87, width: 2.2),
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
-        color: Colors.white,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 22),
+                Icon(
+                  Icons.arrow_circle_right_rounded,
+                  color: Colors.white.withValues(alpha: 0.85),
+                  size: 20,
+                ),
+              ],
+            ),
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, color: color, size: 20),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.grey[400],
-                      size: 18,
-                    ),
-                  ],
-                ),
-                const Spacer(),
                 Text(
                   value,
-                  style: GoogleFonts.outfit(
+                  style: GoogleFonts.inter(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
                   title,
                   style: GoogleFonts.inter(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
-                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   quotaLabel,
                   style: GoogleFonts.inter(
-                    fontSize: 10,
-                    color: Colors.grey[500],
+                    fontSize: 9,
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
-                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -1178,7 +1175,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header with Semester Selector
+            // Header with Page Title & Semester Selector
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
@@ -1187,7 +1184,14 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const SizedBox(width: 12),
+                  Text(
+                    "Exceptions",
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
                   // Semester Dropdown
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -1245,166 +1249,151 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                   vertical: 8.0,
                 ),
                 children: [
-                  _buildSectionHeader("Field Work:"),
-                  Row(
+                  _buildSectionHeader("Field Work"),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.3,
                     children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "FW Absents",
-                          value: absentStudentsList.length.toString(),
-                          icon: Icons.cancel_schedule_send_rounded,
-                          color: Colors.redAccent,
-                          quotaLabel: "In $_selectedSemester",
-                          onTap: () => _navigateToStudentList(
-                            title: "Field Work Absents",
-                            description:
-                                "Students in $_selectedSemester with at least one absent field work day",
-                            studentsList: absentStudentsList,
-                            activeTab: 'absent',
-                          ),
+                      _buildStatCard(
+                        title: "FW Absents",
+                        value: absentStudentsList.length.toString(),
+                        icon: Icons.cancel_schedule_send_rounded,
+                        colors: const [Color(0xFF1E3A8A), Color(0xFF1E40AF)],
+                        quotaLabel: "In $_selectedSemester",
+                        onTap: () => _navigateToStudentList(
+                          title: "Field Work Absents",
+                          description:
+                              "Students in $_selectedSemester with at least one absent field work day",
+                          studentsList: absentStudentsList,
+                          activeTab: 'absent',
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "FW Weekly Low",
-                          value: weeklyLowList.length.toString(),
-                          icon: Icons.date_range_rounded,
-                          color: Colors.orangeAccent,
-                          quotaLabel: "Target: ${_weeklyQuota.toInt()} hrs",
-                          onTap: () => _navigateToStudentList(
-                            title: "Weekly Threshold Violations",
-                            description:
-                                "Students who logged less than $_weeklyQuota hrs last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
-                            studentsList: weeklyLowList,
-                            activeTab: 'weekly',
-                          ),
+                      _buildStatCard(
+                        title: "FW Weekly Low",
+                        value: weeklyLowList.length.toString(),
+                        icon: Icons.date_range_rounded,
+                        colors: const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                        quotaLabel: "Target: ${_weeklyQuota.toInt()} hrs",
+                        onTap: () => _navigateToStudentList(
+                          title: "Weekly Threshold Violations",
+                          description:
+                              "Students who logged less than $_weeklyQuota hrs last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
+                          studentsList: weeklyLowList,
+                          activeTab: 'weekly',
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "FW Monthly Low",
-                          value: monthlyLowList.length.toString(),
-                          icon: Icons.calendar_month_rounded,
-                          color: Colors.blueAccent,
-                          quotaLabel: "Target: ${_monthlyQuota.toInt()} hrs",
-                          onTap: () => _navigateToStudentList(
-                            title: "Monthly Threshold Violations",
-                            description:
-                                "Students who logged less than $_monthlyQuota hrs last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
-                            studentsList: monthlyLowList,
-                            activeTab: 'monthly',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(child: SizedBox.shrink()),
-                    ],
-                  ),
-
-                  _buildSectionHeader("Reports"),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "Late Reports",
-                          value: lateReportsList.length.toString(),
-                          icon: Icons.warning_amber_rounded,
-                          color: Colors.amber[800]!,
-                          quotaLabel: "In $_selectedSemester",
-                          onTap: () => _navigateToStudentList(
-                            title: "Late Report Submissions",
-                            description:
-                                "Students in $_selectedSemester who submitted report(s) late this semester",
-                            studentsList: lateReportsList,
-                            activeTab: 'late_reports',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "Late Rep. (Month)",
-                          value: lateReportsMonthList.length.toString(),
-                          icon: Icons.assignment_late_rounded,
-                          color: Colors.amber[900]!,
-                          quotaLabel: "Last Month",
-                          onTap: () => _navigateToStudentList(
-                            title: "Monthly Late Reports",
-                            description:
-                                "Students who submitted report(s) late last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
-                            studentsList: lateReportsMonthList,
-                            activeTab: 'late_reports_month',
-                          ),
+                      _buildStatCard(
+                        title: "FW Monthly Low",
+                        value: monthlyLowList.length.toString(),
+                        icon: Icons.calendar_month_rounded,
+                        colors: const [Color(0xFF60A5FA), Color(0xFF3B82F6)],
+                        quotaLabel: "Target: ${_monthlyQuota.toInt()} hrs",
+                        onTap: () => _navigateToStudentList(
+                          title: "Monthly Threshold Violations",
+                          description:
+                              "Students who logged less than $_monthlyQuota hrs last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
+                          studentsList: monthlyLowList,
+                          activeTab: 'monthly',
                         ),
                       ),
                     ],
                   ),
 
-                  _buildSectionHeader("Conferences:"),
-                  Row(
+                  _buildSectionHeader("Reports"),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.3,
                     children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "Conf Absents (Sem)",
-                          value: confAbsentSemList.length.toString(),
-                          icon: Icons.forum_rounded,
-                          color: Colors.purple,
-                          quotaLabel: "In $_selectedSemester",
-                          onTap: () => _navigateToStudentList(
-                            title: "Conf Absentees (Semester)",
-                            description:
-                                "Students in $_selectedSemester who were absent for conference day(s) this semester",
-                            studentsList: confAbsentSemList,
-                            activeTab: 'conf_absent_sem',
-                          ),
+                      _buildStatCard(
+                        title: "Late Reports",
+                        value: lateReportsList.length.toString(),
+                        icon: Icons.warning_amber_rounded,
+                        colors: const [Color(0xFF115E59), Color(0xFF0F766E)],
+                        quotaLabel: "In $_selectedSemester",
+                        onTap: () => _navigateToStudentList(
+                          title: "Late Report Submissions",
+                          description:
+                              "Students in $_selectedSemester who submitted report(s) late this semester",
+                          studentsList: lateReportsList,
+                          activeTab: 'late_reports',
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "Conf Absents (Month)",
-                          value: confAbsentMonthList.length.toString(),
-                          icon: Icons.cancel_presentation_rounded,
-                          color: Colors.pink,
-                          quotaLabel: "Last Month",
-                          onTap: () => _navigateToStudentList(
-                            title: "Conf Absentees (Last Month)",
-                            description:
-                                "Students who were absent for conference day(s) last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
-                            studentsList: confAbsentMonthList,
-                            activeTab: 'conf_absent_month',
-                          ),
+                      _buildStatCard(
+                        title: "Late Rep. (Month)",
+                        value: lateReportsMonthList.length.toString(),
+                        icon: Icons.assignment_late_rounded,
+                        colors: const [Color(0xFF0D9488), Color(0xFF14B8A6)],
+                        quotaLabel: "Last Month",
+                        onTap: () => _navigateToStudentList(
+                          title: "Monthly Late Reports",
+                          description:
+                              "Students who submitted report(s) late last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
+                          studentsList: lateReportsMonthList,
+                          activeTab: 'late_reports_month',
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
+
+                  _buildSectionHeader("Conferences"),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.3,
                     children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          title: "Conf Absents (Week)",
-                          value: confAbsentWeekList.length.toString(),
-                          icon: Icons.unpublished_rounded,
-                          color: Colors.deepOrangeAccent,
-                          quotaLabel: "Last Week",
-                          onTap: () => _navigateToStudentList(
-                            title: "Conf Absentees (Last Week)",
-                            description:
-                                "Students who were absent for conference day(s) last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
-                            studentsList: confAbsentWeekList,
-                            activeTab: 'conf_absent_week',
-                          ),
+                      _buildStatCard(
+                        title: "Conf Absents (Sem)",
+                        value: confAbsentSemList.length.toString(),
+                        icon: Icons.forum_rounded,
+                        colors: const [Color(0xFF581C87), Color(0xFF701A75)],
+                        quotaLabel: "In $_selectedSemester",
+                        onTap: () => _navigateToStudentList(
+                          title: "Conf Absentees (Semester)",
+                          description:
+                              "Students in $_selectedSemester who were absent for conference day(s) this semester",
+                          studentsList: confAbsentSemList,
+                          activeTab: 'conf_absent_sem',
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const Expanded(child: SizedBox.shrink()),
+                      _buildStatCard(
+                        title: "Conf Absents (Month)",
+                        value: confAbsentMonthList.length.toString(),
+                        icon: Icons.cancel_presentation_rounded,
+                        colors: const [Color(0xFFD946EF), Color(0xFFC084FC)],
+                        quotaLabel: "Last Month",
+                        onTap: () => _navigateToStudentList(
+                          title: "Conf Absentees (Last Month)",
+                          description:
+                              "Students who were absent for conference day(s) last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
+                          studentsList: confAbsentMonthList,
+                          activeTab: 'conf_absent_month',
+                        ),
+                      ),
+                      _buildStatCard(
+                        title: "Conf Absents (Week)",
+                        value: confAbsentWeekList.length.toString(),
+                        icon: Icons.unpublished_rounded,
+                        colors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                        quotaLabel: "Last Week",
+                        onTap: () => _navigateToStudentList(
+                          title: "Conf Absentees (Last Week)",
+                          description:
+                              "Students who were absent for conference day(s) last week (${DateFormat('dd/MM').format(_startOfLastWeek)} - ${DateFormat('dd/MM').format(_endOfLastWeek)})",
+                          studentsList: confAbsentWeekList,
+                          activeTab: 'conf_absent_week',
+                        ),
+                      ),
                     ],
                   ),
 
@@ -1416,6 +1405,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
         ),
       ),
     );
+
   }
 }
 

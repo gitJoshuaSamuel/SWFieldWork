@@ -94,22 +94,22 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
     Color? color,
   }) {
     final isSelected = _selectedPage == pageKey;
-    final activeColor = color ?? Colors.indigo[800]!;
+    final activeColor = color ?? const Color(0xFF1E88E5);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
       child: ListTile(
         leading: Icon(
           icon,
-          color: isSelected ? activeColor : Colors.grey[600],
+          color: activeColor,
           size: 22,
         ),
         title: Text(
           title,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? activeColor : Colors.grey[700],
+          style: GoogleFonts.outfit(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
         ),
         selected: isSelected,
@@ -128,44 +128,15 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: const Color(0xFF1E88E5),
+        foregroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 64,
-        leadingWidth: 72,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
-          child: Builder(
-            builder: (context) => IconButton(
-              icon: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                  border: Border.all(color: Colors.grey[200]!, width: 1),
-                ),
-                child: const Icon(
-                  Icons.menu_rounded,
-                  color: Colors.black87,
-                  size: 20,
-                ),
-              ),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
-        ),
         title: Text(
           _selectedPage,
           style: GoogleFonts.outfit(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.white,
           ),
         ),
         centerTitle: true,
@@ -180,7 +151,7 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
         ),
         child: Column(
           children: [
-            // Header with Gradient and Live Profile
+            // Header with matching background and Live Profile
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(
@@ -190,10 +161,10 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                 bottom: 24,
               ),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                color: Color(0xFF1E88E5),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
                 ),
               ),
               child: Row(
