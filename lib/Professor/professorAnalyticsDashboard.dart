@@ -17,6 +17,9 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
   bool _isLoading = true;
   int? _collegeCode;
 
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _detailsHeaderKey = GlobalKey();
+
   // Selected Date for Analysis
   DateTime _selectedDate = DateTime.now();
 
@@ -25,6 +28,25 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
   String _selectedBatch = 'All';
   String _selectedSemester = 'All';
   String _selectedSpecialisation = 'All';
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToDetails() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _detailsHeaderKey.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
 
   // Dropdown options
   List<String> _classes = ['All'];
@@ -415,9 +437,12 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             // --- DATE SELECTOR & METADATA HEADER ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -531,12 +556,15 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
             const SizedBox(height: 12),
 
             // --- WIDGET STATISTICS GRID ---
-            SizedBox(
-              height: 180,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.25,
                 children: () {
                   final List<Widget> cards = [];
                   if (isFwDay) {
@@ -545,21 +573,21 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                       value: activeFw.length.toString(),
                       subtitle: "Checked-in",
                       icon: Icons.sensors_rounded,
-                      colors: [const Color(0xFF1E88E5), const Color(0xFF1565C0)],
+                      colors: [const Color(0xFF1E3A8A), const Color(0xFF1E40AF)], // Dark Navy
                     ));
                     cards.add(_buildStatCard(
                       title: "Completed Field Work",
                       value: completedFw.length.toString(),
                       subtitle: "Checked-out",
                       icon: Icons.check_circle_rounded,
-                      colors: [const Color(0xFF43A047), const Color(0xFF2E7D32)],
+                      colors: [const Color(0xFF2563EB), const Color(0xFF1D4ED8)], // Royal Blue
                     ));
                     cards.add(_buildStatCard(
                       title: "Absent",
                       value: absentStudents.length.toString(),
                       subtitle: "Unaccounted/Absent",
                       icon: Icons.person_off_rounded,
-                      colors: [const Color(0xFFE53935), const Color(0xFFC62828)],
+                      colors: [const Color(0xFF60A5FA), const Color(0xFF3B82F6)], // Sky Blue
                     ));
                   }
                   if (isRepDay) {
@@ -568,21 +596,21 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                       value: reports.length.toString(),
                       subtitle: "Total submissions",
                       icon: Icons.description_rounded,
-                      colors: [const Color(0xFF00897B), const Color(0xFF00695C)],
+                      colors: [const Color(0xFF115E59), const Color(0xFF0F766E)], // Dark Teal
                     ));
                     cards.add(_buildStatCard(
                       title: "Reports On Time",
                       value: onTimeReports.length.toString(),
                       subtitle: "On-time submissions",
                       icon: Icons.task_alt_rounded,
-                      colors: [const Color(0xFF00B0FF), const Color(0xFF0091EA)],
+                      colors: [const Color(0xFF0D9488), const Color(0xFF0D9488)], // Medium Teal
                     ));
                     cards.add(_buildStatCard(
                       title: "Reports Late",
                       value: lateReports.length.toString(),
                       subtitle: "Late submissions",
                       icon: Icons.watch_later_rounded,
-                      colors: [const Color(0xFFFFB300), const Color(0xFFFF8F00)],
+                      colors: [const Color(0xFF2DD4BF), const Color(0xFF14B8A6)], // Light Teal
                     ));
                   }
                   if (isConfDay) {
@@ -591,14 +619,14 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                       value: confAttendedLogs.length.toString(),
                       subtitle: "Attended logs",
                       icon: Icons.forum_rounded,
-                      colors: [const Color(0xFF8E24AA), const Color(0xFF6A1B9A)],
+                      colors: [const Color(0xFF581C87), const Color(0xFF701A75)], // Deep Purple
                     ));
                     cards.add(_buildStatCard(
                       title: "Conference Absent",
                       value: confNotAttended.length.toString(),
                       subtitle: "Not attended",
                       icon: Icons.no_accounts_rounded,
-                      colors: [const Color(0xFFD81B60), const Color(0xFFAD1457)],
+                      colors: [const Color(0xFFD946EF), const Color(0xFFC084FC)], // Light Violet/Magenta
                     ));
                   }
                   cards.add(_buildStatCard(
@@ -606,17 +634,9 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                     value: filteredStudentsList.length.toString(),
                     subtitle: "Target vs completed",
                     icon: Icons.assignment_rounded,
-                    colors: [const Color(0xFFEC407A), const Color(0xFFD81B60)],
+                    colors: [const Color(0xFF475569), const Color(0xFF334155)], // Neutral Slate
                   ));
-
-                  final List<Widget> cardWidgets = [];
-                  for (int i = 0; i < cards.length; i++) {
-                    cardWidgets.add(cards[i]);
-                    if (i < cards.length - 1) {
-                      cardWidgets.add(const SizedBox(width: 12));
-                    }
-                  }
-                  return cardWidgets;
+                  return cards;
                 }(),
               ),
             ),
@@ -624,6 +644,7 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
 
             // --- DETAILS EXPANDABLE HEADER ---
             Padding(
+              key: _detailsHeaderKey,
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -650,16 +671,17 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
             const SizedBox(height: 8),
 
             // --- DETAILED LIST ---
-            Expanded(
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: detailListWidgets,
               ),
             ),
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -716,10 +738,10 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
         setState(() {
           _activeWidgetTab = title;
         });
+        _scrollToDetails();
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        width: 155,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
@@ -907,6 +929,8 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
     final String status = log['status'] ?? 'Present';
     final bool hasCoords = log['check_in_lat'] != null && log['check_in_lng'] != null;
 
+    final String? displayImgUrl = state == 'Completed' ? log['check_out_img_url'] : log['check_in_img_url'];
+
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
@@ -929,11 +953,13 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  log['check_in_img_url'] ?? '',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.grey, size: 24),
-                ),
+                child: displayImgUrl != null
+                    ? Image.network(
+                        displayImgUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.grey, size: 24),
+                      )
+                    : const Icon(Icons.person, color: Colors.grey, size: 24),
               ),
             ),
             const SizedBox(width: 12),
@@ -948,27 +974,48 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                   Text(
                     "Reg: $regNo | Faculty: $faculty",
                     style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   if (activityType == 'Field Work')
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Icon(Icons.login_rounded, size: 12, color: Colors.green[600]),
-                        const SizedBox(width: 4),
-                        Text("In: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
-                        const SizedBox(width: 12),
-                        Icon(Icons.logout_rounded, size: 12, color: checkOut != null ? Colors.red : Colors.orange),
-                        const SizedBox(width: 4),
-                        Text("Out: $checkOutStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.login_rounded, size: 12, color: Colors.green[600]),
+                            const SizedBox(width: 4),
+                            Text("In: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.logout_rounded, size: 12, color: checkOut != null ? Colors.red : Colors.orange),
+                            const SizedBox(width: 4),
+                            Text("Out: $checkOutStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                          ],
+                        ),
                       ],
                     )
                   else if (activityType == 'Report')
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Icon(Icons.description_rounded, size: 12, color: Colors.teal[600]),
-                        const SizedBox(width: 4),
-                        Text("Submitted: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
-                        const SizedBox(width: 12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.description_rounded, size: 12, color: Colors.teal[600]),
+                            const SizedBox(width: 4),
+                            Text("Submitted: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                          ],
+                        ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
@@ -988,12 +1035,19 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                       ],
                     )
                   else if (activityType == 'Conference')
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Icon(Icons.forum_rounded, size: 12, color: Colors.purple[600]),
-                        const SizedBox(width: 4),
-                        Text("Attended: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
-                        const SizedBox(width: 12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.forum_rounded, size: 12, color: Colors.purple[600]),
+                            const SizedBox(width: 4),
+                            Text("Attended: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                          ],
+                        ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
@@ -1013,12 +1067,12 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                       ],
                     ),
                   const SizedBox(height: 6),
-                  Row(
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
                     children: [
                       _buildMiniProgressChip("FW: ${metrics['fw_count']}/${metrics['fw_target']}", metrics['fw_count'] >= metrics['fw_target'] ? Colors.green : Colors.blue),
-                      const SizedBox(width: 4),
                       _buildMiniProgressChip("REP: ${metrics['rep_count']}/${metrics['rep_target']}", metrics['rep_count'] >= metrics['rep_target'] ? Colors.green : Colors.teal),
-                      const SizedBox(width: 4),
                       _buildMiniProgressChip("CONF: ${metrics['conf_count']}/${metrics['conf_target']}", metrics['conf_count'] >= metrics['conf_target'] ? Colors.green : Colors.purple),
                     ],
                   ),
@@ -1030,7 +1084,7 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
               children: [
                 IconButton(
                   icon: const Icon(Icons.photo_rounded, color: Colors.indigo, size: 20),
-                  onPressed: () => _showImageDialog(log['check_in_img_url']),
+                  onPressed: () => _showImageDialog(displayImgUrl),
                 ),
                 if (hasCoords)
                   IconButton(
@@ -1087,7 +1141,9 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                   ),
                   Text(
                     "Reg: $regNo | Faculty: $faculty",
-                    style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500]),
+                    style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[50]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -1095,12 +1151,12 @@ class _ProfessorAnalyticsDashboardState extends State<ProfessorAnalyticsDashboar
                     style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.redAccent),
                   ),
                   const SizedBox(height: 6),
-                  Row(
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
                     children: [
                       _buildMiniProgressChip("FW: ${metrics['fw_count']}/${metrics['fw_target']}", metrics['fw_count'] >= metrics['fw_target'] ? Colors.green : Colors.blue),
-                      const SizedBox(width: 4),
                       _buildMiniProgressChip("REP: ${metrics['rep_count']}/${metrics['rep_target']}", metrics['rep_count'] >= metrics['rep_target'] ? Colors.green : Colors.teal),
-                      const SizedBox(width: 4),
                       _buildMiniProgressChip("CONF: ${metrics['conf_count']}/${metrics['conf_target']}", metrics['conf_count'] >= metrics['conf_target'] ? Colors.green : Colors.purple),
                     ],
                   ),

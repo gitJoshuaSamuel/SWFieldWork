@@ -34,6 +34,7 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
     {'db': 'professor', 'ui': 'Related Professor'},
     {'db': 'Weekly FW', 'ui': 'Weekly field work hours'},
     {'db': 'Monthly FW', 'ui': 'Monthly field work hours'},
+    {'db': 'Daily FW Hours', 'ui': 'Daily FW Hours'},
   ];
 
   @override
@@ -204,6 +205,8 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
         return Colors.indigoAccent;
       case 'Monthly FW':
         return Colors.blueGrey;
+      case 'Daily FW Hours':
+        return Colors.amber;
       default:
         return Colors.grey;
     }
@@ -362,7 +365,7 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
                               style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
+                              backgroundColor: const Color(0xFF1E88E5),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

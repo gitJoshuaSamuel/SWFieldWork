@@ -813,7 +813,7 @@ class _CollegeSchedulePageState extends State<CollegeSchedulePage> {
                             style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
+                            backgroundColor: const Color(0xFF1E88E5),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

@@ -491,7 +491,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Performance Reports",
+                    "Table View",
                     style: GoogleFonts.outfit(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

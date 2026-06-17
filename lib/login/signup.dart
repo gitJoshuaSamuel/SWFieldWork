@@ -450,14 +450,14 @@ class _SignupState extends State<Signup> {
                     ElevatedButton(
                       onPressed: _isLoading ? null : submitForm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: const Color(0xFF1E88E5),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 0,
-                        disabledBackgroundColor: Colors.black54,
+                        disabledBackgroundColor: Colors.grey[400],
                       ),
                       child: _isLoading
                           ? const SizedBox(

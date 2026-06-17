@@ -217,7 +217,7 @@ class _LoginState extends State<Login> {
                     ElevatedButton(
                       onPressed: submitForm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: const Color(0xFF1E88E5),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

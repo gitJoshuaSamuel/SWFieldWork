@@ -1256,7 +1256,7 @@ class _EditLogBottomSheetState extends State<_EditLogBottomSheet> {
                     child: ElevatedButton(
                       onPressed: _saveForm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: const Color(0xFF1E88E5),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

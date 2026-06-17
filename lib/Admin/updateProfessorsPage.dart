@@ -636,7 +636,7 @@ class _UpdateProfessorsPageState extends State<UpdateProfessorsPage> {
               ElevatedButton(
                 onPressed: _isSaving ? null : _updateProfessorProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
+                  backgroundColor: const Color(0xFF1E88E5),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

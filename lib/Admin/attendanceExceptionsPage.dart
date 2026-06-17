@@ -23,6 +23,8 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
   String? _selectedSemester;
   List<String> _batches = [];
   String? _selectedBatch;
+  List<Map<String, dynamic>> _semesterRequirements = [];
+  double _dailyFWHours = 8.0;
 
   // Configuration thresholds
   double _weeklyQuota = 24.0;
@@ -139,12 +141,12 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
             _selectedBatch = _batches.first;
           }
 
-          // 3. Fetch Targets (Weekly FW & Monthly FW)
+          // 3. Fetch Targets (Weekly FW, Monthly FW & Daily FW Hours)
           final targetsData = await supabase
               .from('college_options')
               .select()
               .eq('college_code', code)
-              .inFilter('category', ['Weekly FW', 'Monthly FW']);
+              .inFilter('category', ['Weekly FW', 'Monthly FW', 'Daily FW Hours']);
 
           for (var t in targetsData) {
             if (t['category'] == 'Weekly FW') {
@@ -153,8 +155,18 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
             } else if (t['category'] == 'Monthly FW') {
               _monthlyQuota =
                   double.tryParse(t['value']?.toString() ?? '') ?? 96.0;
+            } else if (t['category'] == 'Daily FW Hours') {
+              _dailyFWHours =
+                  double.tryParse(t['value']?.toString() ?? '') ?? 8.0;
             }
           }
+
+          // 3.5. Fetch Semester Requirements
+          final reqData = await supabase
+              .from('semester_requirements')
+              .select()
+              .eq('college_code', code);
+          _semesterRequirements = List<Map<String, dynamic>>.from(reqData);
 
           // 4. Fetch Students
           final studentsData = await supabase
@@ -418,6 +430,87 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
       (a, b) => (a['hours'] as double).compareTo(b['hours'] as double),
     );
     return result;
+  }
+
+  List<Map<String, dynamic>> _getBelowRequiredHoursStudents() {
+    if (_selectedSemester == null || _selectedBatch == null) return [];
+
+    final filteredStudents = _students
+        .where(
+          (s) =>
+              s['batch']?.toString() == _selectedBatch &&
+              _matchesSemester(
+                null,
+                s['semester']?.toString(),
+                _selectedSemester!,
+              ),
+        )
+        .toList();
+
+    final req = _semesterRequirements.firstWhere(
+      (r) => _canonicalizeSemester(r['semester']?.toString() ?? '') ==
+          _canonicalizeSemester(_selectedSemester!),
+      orElse: () => {},
+    );
+
+    final int targetFwDays = req['required_field_work'] ?? 24;
+    final double requiredHours = targetFwDays * _dailyFWHours;
+
+    final List<Map<String, dynamic>> result = [];
+
+    for (var student in filteredStudents) {
+      final sId = student['id']?.toString();
+      if (sId == null) continue;
+
+      final semesterFwLogs = _logs.where((l) {
+        if (l['user_id']?.toString() != sId) return false;
+        if (l['activity_type'] != 'Field Work') return false;
+        if (l['status'] == 'Absent' || l['status'] == 'Holiday') return false;
+        return _matchesSemester(
+          l['semester']?.toString(),
+          student['semester']?.toString(),
+          _selectedSemester!,
+        );
+      }).toList();
+
+      double totalHours = 0.0;
+      for (var log in semesterFwLogs) {
+        if (log['hours_logged'] != null) {
+          totalHours += (log['hours_logged'] as num).toDouble();
+        } else if (log['check_in_time'] != null &&
+            log['check_out_time'] != null) {
+          final inT = DateTime.parse(log['check_in_time'].toString());
+          final outT = DateTime.parse(log['check_out_time'].toString());
+          totalHours += outT.difference(inT).inMinutes / 60.0;
+        }
+      }
+
+      if (totalHours < requiredHours) {
+        result.add({
+          'student': student,
+          'hours': double.parse(totalHours.toStringAsFixed(2)),
+          'required_hours': requiredHours,
+          'logs': semesterFwLogs,
+        });
+      }
+    }
+
+    result.sort(
+      (a, b) => (a['hours'] as double).compareTo(b['hours'] as double),
+    );
+    return result;
+  }
+
+  String _getSemesterTargetHoursLabel() {
+    if (_selectedSemester == null) return "N/A";
+    final req = _semesterRequirements.firstWhere(
+      (r) => _canonicalizeSemester(r['semester']?.toString() ?? '') ==
+          _canonicalizeSemester(_selectedSemester!),
+      orElse: () => {},
+    );
+    final int targetFwDays = req['required_field_work'] ?? 24;
+    final double requiredHours = targetFwDays * _dailyFWHours;
+    return "${requiredHours.toInt()} hrs";
   }
 
   List<Map<String, dynamic>> _getLateReportsStudents() {
@@ -690,6 +783,8 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
       titleSuffix = 'Weekly Field Work Logs';
     } else if (mode == 'monthly') {
       titleSuffix = 'Monthly Field Work Logs';
+    } else if (mode == 'semester_low') {
+      titleSuffix = 'Semester Field Work Logs';
     } else if (mode == 'late_reports' || mode == 'late_reports_month') {
       titleSuffix = 'Late Report Submissions';
     } else {
@@ -1204,7 +1299,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
       return Scaffold(
         body: Center(
           child: Text(
-            "Exceptions dashboard error: Profile college code missing",
+            "Defaulters View error: Profile college code missing",
             style: GoogleFonts.inter(),
           ),
         ),
@@ -1215,6 +1310,7 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
     final absentStudentsList = _getAbsentStudents();
     final weeklyLowList = _getWeeklyLowStudents();
     final monthlyLowList = _getMonthlyLowStudents();
+    final belowRequiredHoursList = _getBelowRequiredHoursStudents();
     final lateReportsList = _getLateReportsStudents();
     final lateReportsMonthList = _getLateReportsMonthStudents();
     final confAbsentSemList = _getConfAbsentSemesterStudents();
@@ -1358,6 +1454,20 @@ class _AttendanceExceptionsPageState extends State<AttendanceExceptionsPage> {
                               "Students in Batch $_selectedBatch who logged less than $_monthlyQuota hrs last month (${DateFormat('dd/MM').format(_firstDayOfLastMonth)} - ${DateFormat('dd/MM').format(_lastDayOfLastMonth)})",
                           studentsList: monthlyLowList,
                           activeTab: 'monthly',
+                        ),
+                      ),
+                      _buildStatCard(
+                        title: "FW Semester Low",
+                        value: belowRequiredHoursList.length.toString(),
+                        icon: Icons.assignment_late_rounded,
+                        colors: const [Color(0xFF4F46E5), Color(0xFF4338CA)],
+                        quotaLabel: "Target: ${_getSemesterTargetHoursLabel()}",
+                        onTap: () => _navigateToStudentList(
+                          title: "Semester Threshold Violations",
+                          description:
+                              "Students in $_selectedSemester (Batch $_selectedBatch) whose total field work hours are below the required semester hours (${_getSemesterTargetHoursLabel()})",
+                          studentsList: belowRequiredHoursList,
+                          activeTab: 'semester_low',
                         ),
                       ),
                     ],
@@ -1606,6 +1716,17 @@ class StudentExceptionsListPage extends StatelessWidget {
                               final String quotaStr = "${qH.toString().padLeft(2, '0')}:00";
                               trailingText = "$loggedStr / $quotaStr";
                               trailingColor = Colors.blueAccent;
+                            } else if (activeTab == 'semester_low') {
+                              final double hLogged = (item['hours'] as num).toDouble();
+                              final int h = hLogged.toInt();
+                              final int m = ((hLogged - h) * 60).round();
+                              final String loggedStr = "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+                              final double reqH = (item['required_hours'] as num).toDouble();
+                              final int reqHInt = reqH.toInt();
+                              final int reqMInt = ((reqH - reqHInt) * 60).round();
+                              final String requiredStr = "${reqHInt.toString().padLeft(2, '0')}:${reqMInt.toString().padLeft(2, '0')}";
+                              trailingText = "$loggedStr / $requiredStr";
+                              trailingColor = Colors.indigoAccent;
                             } else if (activeTab == 'late_reports' ||
                                 activeTab == 'late_reports_month') {
                               trailingText = "${item['count']} Late";

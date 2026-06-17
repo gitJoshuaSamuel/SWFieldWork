@@ -1,10 +1,10 @@
-import '../Admin/createStudentsPage.dart';
 import '../Admin/updateStudentsPage.dart';
 import 'professorAnalyticsDashboard.dart';
 import '../Admin/attendanceLogsPage.dart';
 import '../Admin/attendanceExportPage.dart';
 import '../Admin/attendanceReportsPage.dart';
 import '../Admin/attendanceLogsManagerPage.dart';
+import '../Admin/attendanceExceptionsPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,7 +18,7 @@ class ProfessorLandingPage extends StatefulWidget {
 
 class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
   final supabase = Supabase.instance.client;
-  String _selectedPage = 'Analytics Dashboard';
+  String _selectedPage = 'Daily Report';
   String _professorName = 'Professor';
   String _collegeCodeStr = '';
 
@@ -49,22 +49,20 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
 
   Widget _buildBody() {
     switch (_selectedPage) {
-      case 'Create students':
-        return const Createstudentspage();
-      case 'Update students':
-        return const UpdateStudentsPage();
-      case 'Analytics Dashboard':
+      case 'Daily Report':
         return const ProfessorAnalyticsDashboard();
+      case 'Defaulters View':
+        return const AttendanceExceptionsPage();
+      case 'Table View':
+        return const AttendanceReportsPage();
       case 'Attendance Logs':
         return const AttendanceLogsPage();
       case 'Manage Attendance':
         return const AttendanceLogsManagerPage();
       case 'Export Attendance':
         return const AttendanceExportPage();
-      case 'Performance Reports':
-        return const AttendanceReportsPage();
-      case 'Settings':
-        return const Center(child: Text("App Settings goes here"));
+      case 'Update students':
+        return const UpdateStudentsPage();
       default:
         return const ProfessorAnalyticsDashboard();
     }
@@ -77,29 +75,27 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
     Color? color,
   }) {
     final isSelected = _selectedPage == pageKey;
-    final activeColor = color ?? Colors.indigo[800]!;
+    final activeColor = color ?? const Color(0xFF1E88E5);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
       child: ListTile(
         leading: Icon(
           icon,
-          color: isSelected ? activeColor : Colors.grey[600],
+          color: activeColor,
           size: 22,
         ),
         title: Text(
           title,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? activeColor : Colors.grey[700],
+          style: GoogleFonts.outfit(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
         ),
         selected: isSelected,
         selectedTileColor: activeColor.withValues(alpha: 0.08),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onTap: () {
           setState(() => _selectedPage = pageKey);
           Navigator.pop(context); // Close drawer
@@ -113,40 +109,15 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: const Color(0xFF1E88E5),
+        foregroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 64,
-        leadingWidth: 72,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
-          child: Builder(
-            builder: (context) => IconButton(
-              icon: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    )
-                  ],
-                  border: Border.all(color: Colors.grey[200]!, width: 1),
-                ),
-                child: const Icon(Icons.menu_rounded, color: Colors.black87, size: 20),
-              ),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
-        ),
         title: Text(
           _selectedPage,
           style: GoogleFonts.outfit(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Colors.white,
           ),
         ),
         centerTitle: true,
@@ -161,15 +132,14 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
         ),
         child: Column(
           children: [
-            // Header with Gradient and Live Profile
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 24),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                color: Color(0xFF1E88E5),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
                 ),
               ),
               child: Row(
@@ -225,8 +195,18 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
                 children: [
                   _buildDrawerItem(
                     icon: Icons.analytics_rounded,
-                    title: 'Analytics Dashboard',
-                    pageKey: 'Analytics Dashboard',
+                    title: 'Daily Report',
+                    pageKey: 'Daily Report',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.assignment_late_rounded,
+                    title: 'Defaulters View',
+                    pageKey: 'Defaulters View',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.table_chart_rounded,
+                    title: 'Table View',
+                    pageKey: 'Table View',
                   ),
                   _buildDrawerItem(
                     icon: Icons.assignment_rounded,
@@ -244,28 +224,9 @@ class _ProfessorLandingPageState extends State<ProfessorLandingPage> {
                     pageKey: 'Export Attendance',
                   ),
                   _buildDrawerItem(
-                    icon: Icons.table_chart_rounded,
-                    title: 'Performance Reports',
-                    pageKey: 'Performance Reports',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.person_add_rounded,
-                    title: 'Create Students',
-                    pageKey: 'Create students',
-                  ),
-                  _buildDrawerItem(
                     icon: Icons.manage_accounts_rounded,
                     title: 'Update Students',
                     pageKey: 'Update students',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                    child: Divider(),
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.settings_rounded,
-                    title: 'Settings',
-                    pageKey: 'Settings',
                   ),
                 ],
               ),

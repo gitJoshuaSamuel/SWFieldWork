@@ -74,14 +74,12 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
         return const AttendanceLogsManagerPage();
       case 'Export Attendance':
         return const AttendanceExportPage();
-      case 'Performance Reports':
+      case 'Table View':
         return const AttendanceReportsPage();
-      case 'Threshold Exceptions':
+      case 'Defaulters View':
         return const AttendanceExceptionsPage();
       case 'Schedule & Settings':
         return const CollegeSchedulePage();
-      case 'Settings':
-        return const Center(child: Text("App Settings goes here"));
       default:
         return const AdminAnalyticsDashboard();
     }
@@ -233,6 +231,16 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                     pageKey: 'Daily Report',
                   ),
                   _buildDrawerItem(
+                    icon: Icons.assignment_late_rounded,
+                    title: 'Defaulters View',
+                    pageKey: 'Defaulters View',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.table_chart_rounded,
+                    title: 'Table View',
+                    pageKey: 'Table View',
+                  ),
+                  _buildDrawerItem(
                     icon: Icons.assignment_rounded,
                     title: 'Attendance Logs',
                     pageKey: 'Attendance Logs',
@@ -246,21 +254,6 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                     icon: Icons.download_rounded,
                     title: 'Export Attendance',
                     pageKey: 'Export Attendance',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.table_chart_rounded,
-                    title: 'Performance Reports',
-                    pageKey: 'Performance Reports',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.assignment_late_rounded,
-                    title: 'Threshold Exceptions',
-                    pageKey: 'Threshold Exceptions',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.calendar_month_rounded,
-                    title: 'Schedule & Settings',
-                    pageKey: 'Schedule & Settings',
                   ),
                   _buildDrawerItem(
                     icon: Icons.person_add_rounded,
@@ -283,21 +276,14 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                     pageKey: 'Update professors',
                   ),
                   _buildDrawerItem(
+                    icon: Icons.calendar_month_rounded,
+                    title: 'Schedule & Settings',
+                    pageKey: 'Schedule & Settings',
+                  ),
+                  _buildDrawerItem(
                     icon: Icons.settings_suggest_rounded,
                     title: 'Dropdown Options',
                     pageKey: 'Dropdown options',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 8.0,
-                    ),
-                    child: Divider(),
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.settings_rounded,
-                    title: 'Settings',
-                    pageKey: 'Settings',
                   ),
                 ],
               ),
