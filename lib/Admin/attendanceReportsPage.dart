@@ -22,11 +22,42 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
   // Data lists
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _logs = [];
+  List<String> _semesters = [];
 
   // Filter States
   DateTime? _startDate;
   DateTime? _endDate;
   String _searchQuery = '';
+
+  String _canonicalizeSemester(String sem) {
+    final clean = sem.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    if (clean.contains('viii') || clean.endsWith('8th') || clean.endsWith('8') || clean == 'eighth') return '8';
+    if (clean.contains('vii') || clean.endsWith('7th') || clean.endsWith('7') || clean == 'seventh') return '7';
+    if (clean.contains('vi') || clean.endsWith('6th') || clean.endsWith('6') || clean == 'sixth') return '6';
+    if (clean.contains('iv') || clean.endsWith('4th') || clean.endsWith('4') || clean == 'fourth') return '4';
+    if (clean.contains('v') || clean.endsWith('5th') || clean.endsWith('5') || clean == 'fifth') return '5';
+    if (clean.contains('iii') || clean.endsWith('3rd') || clean.endsWith('3') || clean == 'third') return '3';
+    if (clean.contains('ii') || clean.endsWith('2nd') || clean.endsWith('2') || clean == 'second') return '2';
+    if (clean.contains('i') || clean.endsWith('1st') || clean.endsWith('1') || clean == 'first') return '1';
+    return clean;
+  }
+
+  String? _findMatchingSemester(String target, List<String> options) {
+    if (target.isEmpty) return null;
+    final targetLower = target.trim().toLowerCase();
+    for (var opt in options) {
+      if (opt.trim().toLowerCase() == targetLower) {
+        return opt;
+      }
+    }
+    final targetCanonical = _canonicalizeSemester(target);
+    for (var opt in options) {
+      if (_canonicalizeSemester(opt) == targetCanonical) {
+        return opt;
+      }
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -64,6 +95,24 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         if (code != null) {
           _collegeCode = code;
 
+          // Fetch Semester Options
+          final optionsData = await supabase
+              .from('college_options')
+              .select('value')
+              .eq('college_code', code)
+              .eq('category', 'semester');
+
+          final List<String> loadedSems = List<Map<String, dynamic>>.from(optionsData)
+              .map((e) => e['value']?.toString().trim() ?? '')
+              .where((v) => v.isNotEmpty)
+              .toSet()
+              .toList();
+
+          if (loadedSems.isEmpty) {
+            loadedSems.addAll(['Semester I', 'Semester II', 'Semester III', 'Semester IV']);
+          }
+          _semesters = loadedSems;
+
           // 2. Fetch Student Profiles
           final studentsData = await supabase
               .from('profiles')
@@ -100,6 +149,12 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  String _formatHours(double hours) {
+    final int h = hours.toInt();
+    final int m = ((hours - h) * 60).round();
+    return "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
   }
 
   // Compute student stats based on date range bounds
@@ -144,10 +199,9 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
 
       int fwDaysCompleted = 0;
       int fwDaysAbsent = 0;
-      double sem1Hours = 0.0;
-      double sem2Hours = 0.0;
-      double sem3Hours = 0.0;
-      double sem4Hours = 0.0;
+      final Map<String, double> semHours = {
+        for (var sem in _semesters) sem: 0.0
+      };
       double lastWeekHours = 0.0;
       double lastMonthHours = 0.0;
       double todayHours = 0.0;
@@ -170,7 +224,9 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         final DateTime? checkOut = checkOutStr != null ? DateTime.parse(checkOutStr).toLocal() : null;
 
         double duration = 0.0;
-        if (checkIn != null && checkOut != null) {
+        if (log['hours_logged'] != null) {
+          duration = (log['hours_logged'] as num).toDouble();
+        } else if (checkIn != null && checkOut != null) {
           duration = checkOut.difference(checkIn).inMinutes / 60.0;
         }
 
@@ -180,16 +236,11 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
           } else if (checkOut != null) {
             fwDaysCompleted++;
 
-            // Semester classification (roman and num support)
-            final sem = (log['semester'] ?? student['semester'] ?? '').toString().trim().toLowerCase();
-            if (sem == 'semester i' || sem == 'semester 1' || sem == 'sem 1') {
-              sem1Hours += duration;
-            } else if (sem == 'semester ii' || sem == 'semester 2' || sem == 'sem 2') {
-              sem2Hours += duration;
-            } else if (sem == 'semester iii' || sem == 'semester 3' || sem == 'sem 3') {
-              sem3Hours += duration;
-            } else if (sem == 'semester iv' || sem == 'semester 4' || sem == 'sem 4') {
-              sem4Hours += duration;
+            // Semester classification
+            final semValue = (log['semester'] ?? student['semester'] ?? '').toString();
+            final matchedSem = _findMatchingSemester(semValue, _semesters);
+            if (matchedSem != null) {
+              semHours[matchedSem] = (semHours[matchedSem] ?? 0.0) + duration;
             }
 
             // Timeframes
@@ -228,14 +279,10 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         }
       }
 
-      reportRows.add({
+      final Map<String, dynamic> rowMap = {
         'display_name': student['display_name'] ?? 'Student',
         'fw_days': fwDaysCompleted,
         'fw_absent': fwDaysAbsent,
-        'sem1_hours': double.parse(sem1Hours.toStringAsFixed(2)),
-        'sem2_hours': double.parse(sem2Hours.toStringAsFixed(2)),
-        'sem3_hours': double.parse(sem3Hours.toStringAsFixed(2)),
-        'sem4_hours': double.parse(sem4Hours.toStringAsFixed(2)),
         'last_week_hours': double.parse(lastWeekHours.toStringAsFixed(2)),
         'last_month_hours': double.parse(lastMonthHours.toStringAsFixed(2)),
         'today_hours': double.parse(todayHours.toStringAsFixed(2)),
@@ -246,7 +293,14 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         'reports_total': reportsTotal,
         'reports_late': reportsLate,
         'reports_on_time': reportsOnTime,
-      });
+      };
+
+      for (var sem in _semesters) {
+        final hours = semHours[sem] ?? 0.0;
+        rowMap['sem_hours_$sem'] = double.parse(hours.toStringAsFixed(2));
+      }
+
+      reportRows.add(rowMap);
     }
 
     return reportRows;
@@ -299,16 +353,52 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     try {
       final List<String> csvLines = [];
       
-      // Add CSV Headers
-      csvLines.add(
-        'Student Name,FW Days Completed,FW Days Absent,Sem 1 Hours,Sem 2 Hours,Sem 3 Hours,Sem 4 Hours,Last Week Hours,Last Month Hours,Today Hours,Additional FW,Compensatory FW,Conferences Attended,Conferences Absent,Reports Total,Reports Late,Reports On Time'
-      );
+      // Add CSV Headers dynamically
+      final List<String> headers = [
+        'Student Name',
+        'FW Days Completed',
+        'FW Days Absent',
+      ];
+      for (var sem in _semesters) {
+        headers.add('$sem Hours');
+      }
+      headers.addAll([
+        'Last Week Hours',
+        'Last Month Hours',
+        'Today Hours',
+        'Additional FW',
+        'Compensatory FW',
+        'Conferences Attended',
+        'Conferences Absent',
+        'Reports Total',
+        'Reports Late',
+        'Reports On Time',
+      ]);
+      csvLines.add(headers.map((h) => '"$h"').join(','));
 
-      // Add Data rows
+      // Add Data rows dynamically
       for (var row in reportData) {
-        csvLines.add(
-          '"${row['display_name']}",${row['fw_days']},${row['fw_absent']},${row['sem1_hours']},${row['sem2_hours']},${row['sem3_hours']},${row['sem4_hours']},${row['last_week_hours']},${row['last_month_hours']},${row['today_hours']},${row['additional_fw']},${row['compensatory_fw']},${row['conf_attended']},${row['conf_absent']},${row['reports_total']},${row['reports_late']},${row['reports_on_time']}'
-        );
+        final List<String> cells = [
+          '"${row['display_name']}"',
+          '${row['fw_days']}',
+          '${row['fw_absent']}',
+        ];
+        for (var sem in _semesters) {
+          cells.add('${row['sem_hours_$sem'] ?? 0.0}');
+        }
+        cells.addAll([
+          '${row['last_week_hours']}',
+          '${row['last_month_hours']}',
+          '${row['today_hours']}',
+          '${row['additional_fw']}',
+          '${row['compensatory_fw']}',
+          '${row['conf_attended']}',
+          '${row['conf_absent']}',
+          '${row['reports_total']}',
+          '${row['reports_late']}',
+          '${row['reports_on_time']}',
+        ]);
+        csvLines.add(cells.join(','));
       }
 
       final csvContent = csvLines.join('\n');
@@ -575,10 +665,9 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                                   DataColumn(label: Text('Student Name', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
                                   DataColumn(label: Text('FW Days', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
                                   DataColumn(label: Text('FW Absent', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('Sem 1 Hours', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('Sem 2 Hours', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('Sem 3 Hours', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('Sem 4 Hours', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
+                                  ..._semesters.map((sem) => DataColumn(
+                                    label: Text('$sem Hrs', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                  )),
                                   DataColumn(label: Text('Last Week Hrs', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
                                   DataColumn(label: Text('Last Month Hrs', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
                                   DataColumn(label: Text('Today Hrs', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
@@ -599,13 +688,13 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                                       DataCell(Text(row['display_name'], style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87))),
                                       DataCell(Center(child: Text(row['fw_days'].toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)))),
                                       DataCell(Center(child: Text(row['fw_absent'].toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: row['fw_absent'] > 0 ? Colors.red[700] : Colors.black87)))),
-                                      DataCell(Center(child: Text(row['sem1_hours'].toString(), style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[800])))),
-                                      DataCell(Center(child: Text(row['sem2_hours'].toString(), style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[800])))),
-                                      DataCell(Center(child: Text(row['sem3_hours'].toString(), style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[800])))),
-                                      DataCell(Center(child: Text(row['sem4_hours'].toString(), style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[800])))),
-                                      DataCell(Center(child: Text(row['last_week_hours'].toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal[800])))),
-                                      DataCell(Center(child: Text(row['last_month_hours'].toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal[800])))),
-                                      DataCell(Center(child: Text(row['today_hours'].toString(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green[800])))),
+                                      ..._semesters.map((sem) {
+                                        final double val = row['sem_hours_$sem'] ?? 0.0;
+                                        return DataCell(Center(child: Text(_formatHours(val), style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[800]))));
+                                      }),
+                                      DataCell(Center(child: Text(_formatHours(row['last_week_hours']), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal[800])))),
+                                      DataCell(Center(child: Text(_formatHours(row['last_month_hours']), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal[800])))),
+                                      DataCell(Center(child: Text(_formatHours(row['today_hours']), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green[800])))),
                                       DataCell(Center(child: Text(row['additional_fw'].toString(), style: GoogleFonts.inter(fontSize: 12, color: row['additional_fw'] > 0 ? Colors.purple[800] : Colors.black87)))),
                                       DataCell(Center(child: Text(row['compensatory_fw'].toString(), style: GoogleFonts.inter(fontSize: 12, color: row['compensatory_fw'] > 0 ? Colors.purple[800] : Colors.black87)))),
                                       DataCell(Center(child: Text(row['conf_attended'].toString(), style: GoogleFonts.inter(fontSize: 12, color: Colors.green[700])))),

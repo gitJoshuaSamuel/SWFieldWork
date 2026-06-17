@@ -43,17 +43,14 @@ class StudentProfileDetailsPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF232526), Color(0xFF414345)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.grey[200]!, width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -61,12 +58,12 @@ class StudentProfileDetailsPage extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundColor: Colors.white.withValues(alpha: 0.15),
+                      backgroundColor: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                       backgroundImage: profile['avatar_url'] != null
                           ? NetworkImage(profile['avatar_url']?.toString() ?? '')
                           : null,
                       child: profile['avatar_url'] == null
-                          ? const Icon(Icons.person_rounded, color: Colors.white, size: 44)
+                          ? const Icon(Icons.person_rounded, color: Color(0xFF1E88E5), size: 44)
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -75,23 +72,24 @@ class StudentProfileDetailsPage extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.black87,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: const Color(0xFF1E88E5).withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.2), width: 1),
                       ),
                       child: Text(
                         "Registration No: $regNo",
                         style: GoogleFonts.inter(
                           fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E88E5),
                         ),
                       ),
                     ),

@@ -31,7 +31,7 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
             .select()
             .eq('user_id', userId)
             .order('note_date', ascending: false);
-            
+
         setState(() {
           _notes = List<Map<String, dynamic>>.from(response);
         });
@@ -47,7 +47,20 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
     if (dateStr == null) return "";
     try {
       final dt = DateTime.parse(dateStr).toLocal();
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return "${dt.day} ${months[dt.month - 1]} ${dt.year}";
     } catch (_) {
       return dateStr;
@@ -68,37 +81,6 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "My Study Notes",
-                        style: GoogleFonts.inter(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${_notes.length} notes available",
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: Colors.grey[500],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 12),
 
             // Notes Grid
@@ -108,7 +90,11 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey[300]),
+                          Icon(
+                            Icons.note_alt_outlined,
+                            size: 64,
+                            color: Colors.grey[300],
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             "No notes written yet",
@@ -131,13 +117,17 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
                     )
                   : GridView.builder(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.82,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.82,
+                          ),
                       itemCount: _notes.length,
                       itemBuilder: (context, index) {
                         final note = _notes[index];
@@ -150,7 +140,10 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
                           margin: EdgeInsets.zero,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.grey[200]!, width: 1.5),
+                            side: BorderSide(
+                              color: Colors.grey[200]!,
+                              width: 1.5,
+                            ),
                           ),
                           color: Colors.white,
                           child: InkWell(
@@ -159,7 +152,8 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => NoteEditorPage(note: note),
+                                  builder: (context) =>
+                                      NoteEditorPage(note: note),
                                 ),
                               );
                               if (result == true) {
@@ -172,7 +166,8 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       // Date badge
                                       Expanded(
@@ -191,28 +186,60 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
                                       IconButton(
                                         constraints: const BoxConstraints(),
                                         padding: EdgeInsets.zero,
-                                        icon: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.grey[400]),
+                                        icon: Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 18,
+                                          color: Colors.grey[400],
+                                        ),
                                         onPressed: () async {
-                                          final confirm = await showDialog<bool>(
+                                           final confirm = await showDialog<bool>(
                                             context: context,
                                             builder: (context) => AlertDialog(
-                                              title: Text("Delete Note", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                                              content: Text("Are you sure you want to delete this note?", style: GoogleFonts.inter()),
+                                              backgroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                              title: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.delete_outline_rounded,
+                                                    color: Color(0xFF1E88E5),
+                                                    size: 28,
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Text(
+                                                    "Delete Note",
+                                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+                                                  ),
+                                                ],
+                                              ),
+                                              content: Text(
+                                                "Are you sure you want to delete this note?",
+                                                style: GoogleFonts.outfit(fontSize: 14, color: Colors.black54),
+                                                textAlign: TextAlign.left,
+                                              ),
                                               actions: [
                                                 TextButton(
                                                   onPressed: () => Navigator.pop(context, false),
-                                                  child: Text("Cancel", style: GoogleFonts.inter(color: Colors.grey)),
+                                                  child: Text(
+                                                    "Cancel",
+                                                    style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.bold),
+                                                  ),
                                                 ),
                                                 TextButton(
                                                   onPressed: () => Navigator.pop(context, true),
-                                                  child: Text("Delete", style: GoogleFonts.inter(color: Colors.redAccent)),
+                                                  child: Text(
+                                                    "Delete",
+                                                    style: GoogleFonts.outfit(color: const Color(0xFF1E88E5), fontWeight: FontWeight.bold),
+                                                  ),
                                                 ),
                                               ],
                                             ),
                                           );
 
                                           if (confirm == true) {
-                                            await supabase.from('student_notes').delete().eq('id', note['id']);
+                                            await supabase
+                                                .from('student_notes')
+                                                .delete()
+                                                .eq('id', note['id']);
                                             _fetchNotes();
                                           }
                                         },
@@ -260,15 +287,13 @@ class _StudentNotesPageState extends State<StudentNotesPage> {
         onPressed: () async {
           final result = await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const NoteEditorPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const NoteEditorPage()),
           );
           if (result == true) {
             _fetchNotes();
           }
         },
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF1E88E5),
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add_rounded),

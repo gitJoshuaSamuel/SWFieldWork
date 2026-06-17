@@ -267,7 +267,9 @@ class _AttendanceExportPageState extends State<AttendanceExportPage> {
         final checkOutStr = checkOut != null ? DateFormat('hh:mm a').format(checkOut) : '';
 
         double duration = 0.0;
-        if (checkIn != null && checkOut != null) {
+        if (log['hours_logged'] != null) {
+          duration = double.parse((log['hours_logged'] as num).toDouble().toStringAsFixed(2));
+        } else if (checkIn != null && checkOut != null) {
           duration = double.parse((checkOut.difference(checkIn).inMinutes / 60.0).toStringAsFixed(2));
         }
 

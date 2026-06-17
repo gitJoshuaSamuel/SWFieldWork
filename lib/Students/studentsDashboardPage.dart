@@ -36,6 +36,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
   bool _isHoliday = false;
 
   String? _semester;
+  String? _batch;
   int? _collegeCode;
   String? _reportDeadlineStr;
 
@@ -54,15 +55,16 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId != null) {
-        // Fetch User Profile display_name, college_code, semester
+        // Fetch User Profile display_name, college_code, semester, batch
         final profileResponse = await supabase
             .from('profiles')
-            .select('display_name, college_code, semester')
+            .select('display_name, college_code, semester, batch')
             .eq('id', userId)
             .maybeSingle();
 
         if (profileResponse != null) {
           _semester = profileResponse['semester'] as String?;
+          _batch = profileResponse['batch'] as String?;
           final rawCode = profileResponse['college_code'];
           if (rawCode != null) {
             _collegeCode = int.tryParse(rawCode.toString());
@@ -204,6 +206,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           'check_out_time': nowStr,
           'is_active': false,
           'semester': _semester,
+          'batch': _batch,
           'field_work_type': _selectedActivity == 'Field Work'
               ? (_isHoliday ? 'Holiday' : _selectedFieldWorkType)
               : null,
@@ -330,6 +333,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           'check_out_time': nowStr,
           'is_active': false,
           'semester': _semester,
+          'batch': _batch,
           'field_work_type': null,
         });
 
@@ -351,6 +355,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                 'check_in_time': nowStr,
                 'is_active': true,
                 'semester': _semester,
+                'batch': _batch,
                 'field_work_type': _selectedActivity == 'Field Work' ? _selectedFieldWorkType : null,
               })
               .select()
@@ -853,10 +858,10 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Format clocked hours cleanly (omit decimal if it is integer)
-    final String clockedHoursText = _semesterHours % 1 == 0
-        ? "${_semesterHours.toInt()}h"
-        : "${_semesterHours.toStringAsFixed(1)}h";
+    // Format clocked hours cleanly to HH:MM
+    final int semHrsInt = _semesterHours.toInt();
+    final int semMins = ((_semesterHours - semHrsInt) * 60).round();
+    final String clockedHoursText = "${semHrsInt.toString().padLeft(2, '0')}:${semMins.toString().padLeft(2, '0')}";
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -1063,11 +1068,7 @@ class AttendanceLogsView extends StatelessWidget {
       final hours = diff.inHours;
       final minutes = diff.inMinutes.remainder(60);
       
-      String durationText = "";
-      if (hours > 0) {
-        durationText += "${hours}h ";
-      }
-      durationText += "${minutes}m";
+      final String durationText = "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}";
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

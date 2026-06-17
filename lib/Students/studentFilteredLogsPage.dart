@@ -7,7 +7,12 @@ import 'package:latlong2/latlong.dart';
 
 class StudentFilteredLogsPage extends StatefulWidget {
   final String filterActivity;
-  const StudentFilteredLogsPage({super.key, required this.filterActivity});
+  final bool hideAppBar;
+  const StudentFilteredLogsPage({
+    super.key,
+    required this.filterActivity,
+    this.hideAppBar = false,
+  });
 
   @override
   State<StudentFilteredLogsPage> createState() => _StudentFilteredLogsPageState();
@@ -175,23 +180,27 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E88E5),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          "${widget.filterActivity} History",
-          style: GoogleFonts.outfit(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      appBar: widget.hideAppBar
+          ? null
+          : AppBar(
+              backgroundColor: const Color(0xFF1E88E5),
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                widget.filterActivity == 'All'
+                    ? "Logs"
+                    : "${widget.filterActivity} History",
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+              centerTitle: true,
+            ),
       body: userId == null
           ? Center(
               child: Text(
@@ -221,7 +230,9 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
                   }
 
                   final allLogs = snapshot.data!;
-                  final logs = allLogs.where((l) => l['activity_type'] == widget.filterActivity).toList();
+                  final logs = widget.filterActivity == 'All'
+                      ? allLogs
+                      : allLogs.where((l) => l['activity_type'] == widget.filterActivity).toList();
 
                   if (logs.isEmpty) {
                     return Center(
@@ -235,7 +246,9 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            "No records found for ${widget.filterActivity}",
+                            widget.filterActivity == 'All'
+                                ? "No attendance logs found"
+                                : "No records found for ${widget.filterActivity}",
                             style: GoogleFonts.outfit(
                               fontSize: 16,
                               color: Colors.grey[600],
@@ -266,23 +279,23 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
                     final logStatus = log['status'] ?? 'Present';
                     final isAbsent = logStatus == 'Absent';
                     final isHoliday = logStatus == 'Holiday';
-                    final isOneShot = widget.filterActivity == 'Report' || widget.filterActivity == 'Conference';
+                    final isOneShot = log['activity_type'] == 'Report' || log['activity_type'] == 'Conference';
+                    final isReport = log['activity_type'] == 'Report';
 
                     final checkInTimeStr = log['check_in_time'] as String?;
                     final checkOutTimeStr = log['check_out_time'] as String?;
                     final dateDayText = _formatDateDay(checkInTimeStr);
 
                     // Clocked hours calculation
-                    String clockedHoursText = '--';
+                    String clockedHoursText = '--:--';
                     if (checkInTimeStr != null && checkOutTimeStr != null && !isAbsent && !isHoliday) {
                       try {
                         final inTime = DateTime.parse(checkInTimeStr);
                         final outTime = DateTime.parse(checkOutTimeStr);
                         final diff = outTime.difference(inTime);
-                        final hrs = diff.inMinutes / 60.0;
-                        clockedHoursText = hrs % 1 == 0
-                            ? "${hrs.toInt()}h"
-                            : "${hrs.toStringAsFixed(1)}h";
+                        final hours = diff.inHours;
+                        final minutes = diff.inMinutes.remainder(60);
+                        clockedHoursText = "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}";
                       } catch (_) {}
                     }
 
@@ -427,7 +440,9 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
                                     children: [
                                       Expanded(
                                         child: _buildPhotoBox(
-                                          label: isOneShot ? "Photo" : "Check-in Picture",
+                                          label: isOneShot
+                                              ? (isReport ? "Report Photo" : "Conference Photo")
+                                              : "Check-in Picture",
                                           imgUrl: log['check_in_img_url'],
                                           isAbsent: isAbsent,
                                           isHoliday: isHoliday,

@@ -36,6 +36,10 @@ class _CollegeSchedulePageState extends State<CollegeSchedulePage> {
   List<String> _semestersList = [];
   final Map<String, Map<String, TextEditingController>> _targetControllers = {};
 
+  // Weekly & Monthly field work hours
+  final TextEditingController _weeklyHoursController = TextEditingController();
+  final TextEditingController _monthlyHoursController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +48,8 @@ class _CollegeSchedulePageState extends State<CollegeSchedulePage> {
 
   @override
   void dispose() {
+    _weeklyHoursController.dispose();
+    _monthlyHoursController.dispose();
     for (var maps in _targetControllers.values) {
       for (var ctrl in maps.values) {
         ctrl.dispose();
@@ -159,7 +165,26 @@ class _CollegeSchedulePageState extends State<CollegeSchedulePage> {
 
       final List<Map<String, dynamic>> reqRows = List<Map<String, dynamic>>.from(requirements);
 
+      // 4. Fetch Weekly and Monthly FW hours from college_options
+      final hoursOptions = await supabase
+          .from('college_options')
+          .select()
+          .eq('college_code', collegeCode)
+          .inFilter('category', ['Weekly FW', 'Monthly FW']);
+
+      String weeklyHours = '';
+      String monthlyHours = '';
+      for (var opt in hoursOptions) {
+        if (opt['category'] == 'Weekly FW') {
+          weeklyHours = opt['value']?.toString() ?? '';
+        } else if (opt['category'] == 'Monthly FW') {
+          monthlyHours = opt['value']?.toString() ?? '';
+        }
+      }
+
       setState(() {
+        _weeklyHoursController.text = weeklyHours;
+        _monthlyHoursController.text = monthlyHours;
         _semestersList = sems;
         
         // Dispose existing controllers first
@@ -248,7 +273,52 @@ class _CollegeSchedulePageState extends State<CollegeSchedulePage> {
         }).eq('college_code', _collegeCode!);
       }
 
-      // 2. Upsert semester requirements
+      // 2. Save Weekly and Monthly Field Work Hours
+      final weeklyVal = _weeklyHoursController.text.trim();
+      final existingWeekly = await supabase
+          .from('college_options')
+          .select('id')
+          .eq('college_code', _collegeCode!)
+          .eq('category', 'Weekly FW')
+          .maybeSingle();
+
+      if (existingWeekly == null) {
+        if (weeklyVal.isNotEmpty) {
+          await supabase.from('college_options').insert({
+            'college_code': _collegeCode!,
+            'category': 'Weekly FW',
+            'value': weeklyVal,
+          });
+        }
+      } else {
+        await supabase.from('college_options').update({
+          'value': weeklyVal,
+        }).eq('id', existingWeekly['id']);
+      }
+
+      final monthlyVal = _monthlyHoursController.text.trim();
+      final existingMonthly = await supabase
+          .from('college_options')
+          .select('id')
+          .eq('college_code', _collegeCode!)
+          .eq('category', 'Monthly FW')
+          .maybeSingle();
+
+      if (existingMonthly == null) {
+        if (monthlyVal.isNotEmpty) {
+          await supabase.from('college_options').insert({
+            'college_code': _collegeCode!,
+            'category': 'Monthly FW',
+            'value': monthlyVal,
+          });
+        }
+      } else {
+        await supabase.from('college_options').update({
+          'value': monthlyVal,
+        }).eq('id', existingMonthly['id']);
+      }
+
+      // 3. Upsert semester requirements
       for (var sem in _semestersList) {
         final ctrlMap = _targetControllers[sem];
         if (ctrlMap != null) {
@@ -412,6 +482,82 @@ class _CollegeSchedulePageState extends State<CollegeSchedulePage> {
                   },
                 );
               }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFieldWorkHoursCard() {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.grey[100]!, width: 1.5),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.more_time_rounded, color: Colors.indigo, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Field Work Hours Config",
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        "Configure weekly and monthly field work hours",
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _weeklyHoursController,
+                    keyboardType: TextInputType.number,
+                    decoration: _inputDecoration("Weekly Field Work Hours", Icons.calendar_view_week_rounded),
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _monthlyHoursController,
+                    keyboardType: TextInputType.number,
+                    decoration: _inputDecoration("Monthly Field Work Hours", Icons.calendar_month_rounded),
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -646,6 +792,10 @@ class _CollegeSchedulePageState extends State<CollegeSchedulePage> {
 
                         // Card 5: Semester targets configuration panel
                         _buildSemesterRequirementsCard(),
+                        const SizedBox(height: 16),
+
+                        // Card 6: Field Work Hours targets
+                        _buildFieldWorkHoursCard(),
                         const SizedBox(height: 32),
 
                         // Save Button

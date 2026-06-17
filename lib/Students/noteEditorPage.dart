@@ -14,11 +14,11 @@ class NoteEditorPage extends StatefulWidget {
 
 class _NoteEditorPageState extends State<NoteEditorPage> {
   final supabase = Supabase.instance.client;
-  
+
   late TextEditingController _titleController;
   late TextEditingController _descController;
   late DateTime _selectedDate;
-  
+
   String? _noteId;
   bool _isSaving = false;
   bool _hasUnsavedChanges = false;
@@ -29,15 +29,17 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.note?['title'] ?? '');
-    _descController = TextEditingController(text: widget.note?['description'] ?? '');
-    
+    _descController = TextEditingController(
+      text: widget.note?['description'] ?? '',
+    );
+
     final noteDateStr = widget.note?['note_date'];
     if (noteDateStr != null) {
       _selectedDate = DateTime.parse(noteDateStr).toLocal();
     } else {
       _selectedDate = DateTime.now();
     }
-    
+
     _noteId = widget.note?['id'];
 
     // Listeners to detect changes
@@ -71,10 +73,10 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
 
   Future<void> _saveNote() async {
     if (!_hasUnsavedChanges) return;
-    
+
     final title = _titleController.text.trim();
     final description = _descController.text.trim();
-    
+
     // Don't auto-save if both title and description are blank for a new note
     if (_noteId == null && title.isEmpty && description.isEmpty) {
       return;
@@ -112,10 +114,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
         _noteId = response['id'];
       } else {
         // Update
-        await supabase
-            .from('student_notes')
-            .update(data)
-            .eq('id', _noteId!);
+        await supabase.from('student_notes').update(data).eq('id', _noteId!);
       }
 
       if (mounted) {
@@ -150,16 +149,47 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Delete Note", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        content: Text("Are you sure you want to delete this note?", style: GoogleFonts.inter()),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.delete_outline_rounded,
+              color: Color(0xFF1E88E5),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              "Delete Note",
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to delete this note?",
+          style: GoogleFonts.outfit(fontSize: 14, color: Colors.black54),
+          textAlign: TextAlign.left,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text("Cancel", style: GoogleFonts.inter(color: Colors.grey)),
+            child: Text(
+              "Cancel",
+              style: GoogleFonts.outfit(
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text("Delete", style: GoogleFonts.inter(color: Colors.redAccent)),
+            child: Text(
+              "Delete",
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF1E88E5),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -173,7 +203,10 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
         navigator.pop(true); // Return true to indicate deletion
       } catch (e) {
         scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text("Error deleting note: $e"), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text("Error deleting note: $e"),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -217,19 +250,22 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       appBar: AppBar(
         title: Text(
           widget.note == null ? "New Note" : "Edit Note",
-          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: const Color(0xFF1E88E5),
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           if (_noteId != null)
             IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.white,
+              ),
               onPressed: _deleteNote,
             ),
           IconButton(
-            icon: const Icon(Icons.check_rounded, color: Colors.teal),
+            icon: const Icon(Icons.check_rounded, color: Colors.white),
             onPressed: () async {
               final navigator = Navigator.of(context);
               if (_hasUnsavedChanges) {
@@ -246,7 +282,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
             // Status bar (Auto save indicator, Date selector)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.grey[50],
+              color: Colors.white,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -254,11 +290,15 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                   Row(
                     children: [
                       Icon(
-                        _saveStatus.startsWith("Saved") 
-                            ? Icons.cloud_done_outlined 
-                            : (_isSaving ? Icons.sync_rounded : Icons.edit_note_rounded),
+                        _saveStatus.startsWith("Saved")
+                            ? Icons.cloud_done_outlined
+                            : (_isSaving
+                                  ? Icons.sync_rounded
+                                  : Icons.edit_note_rounded),
                         size: 16,
-                        color: _saveStatus.startsWith("Saved") ? Colors.green : Colors.grey[600],
+                        color: _saveStatus.startsWith("Saved")
+                            ? Colors.green
+                            : Colors.grey[600],
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -276,10 +316,17 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
                     onTap: _selectDate,
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today_rounded, size: 14, color: Colors.teal),
+                          const Icon(
+                            Icons.calendar_today_rounded,
+                            size: 14,
+                            color: Colors.teal,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",

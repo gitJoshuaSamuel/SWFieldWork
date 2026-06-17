@@ -32,6 +32,8 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
     {'db': 'agency_supervisor', 'ui': 'Agency Supervisor'},
     {'db': 'faculty_supervisor', 'ui': 'Faculty Supervisor'},
     {'db': 'professor', 'ui': 'Related Professor'},
+    {'db': 'Weekly FW', 'ui': 'Weekly field work hours'},
+    {'db': 'Monthly FW', 'ui': 'Monthly field work hours'},
   ];
 
   @override
@@ -198,6 +200,10 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
         return Colors.deepPurple;
       case 'professor':
         return Colors.pink;
+      case 'Weekly FW':
+        return Colors.indigoAccent;
+      case 'Monthly FW':
+        return Colors.blueGrey;
       default:
         return Colors.grey;
     }

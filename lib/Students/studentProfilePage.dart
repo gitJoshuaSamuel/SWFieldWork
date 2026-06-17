@@ -365,17 +365,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF232526), Color(0xFF414345)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey[200]!, width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -388,12 +385,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                           children: [
                             CircleAvatar(
                               radius: 30,
-                              backgroundColor: Colors.white.withValues(alpha: 0.15),
+                              backgroundColor: const Color(0xFF1E88E5).withValues(alpha: 0.1),
                               backgroundImage: _profile!['avatar_url'] != null
                                   ? NetworkImage(_profile!['avatar_url']?.toString() ?? '')
                                   : null,
                               child: _profile!['avatar_url'] == null
-                                  ? const Icon(Icons.person_outline_rounded, color: Colors.white, size: 32)
+                                  ? const Icon(Icons.person_outline_rounded, color: Color(0xFF1E88E5), size: 32)
                                   : null,
                             ),
                             Positioned(
@@ -402,7 +399,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: const BoxDecoration(
-                                  color: Colors.black54,
+                                  color: Color(0xFF1E88E5),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -425,18 +422,18 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                               style: GoogleFonts.inter(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Colors.black87,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               "Reg: $regNo",
-                              style: GoogleFonts.inter(fontSize: 13, color: Colors.white.withValues(alpha: 0.7)),
+                              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w500),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               "$department | $college",
-                              style: GoogleFonts.inter(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)),
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w500),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -444,9 +441,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(
+                      const Icon(
                         Icons.chevron_right_rounded,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Color(0xFF1E88E5),
                         size: 24,
                       ),
                     ],
@@ -710,7 +707,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                                   style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[600]),
                                 ),
                                 Text(
-                                  "${rangeHours.toStringAsFixed(2)} hrs",
+                                  () {
+                                    final double rhVal = rangeHours!;
+                                    final int rhH = rhVal.toInt();
+                                    final int rhM = ((rhVal - rhH) * 60).round();
+                                    return "${rhH.toString().padLeft(2, '0')}:${rhM.toString().padLeft(2, '0')}";
+                                  }(),
                                   style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
                                 ),
                               ],
@@ -757,7 +759,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            "${hours.toStringAsFixed(1)} hrs",
+            () {
+              final int h = hours.toInt();
+              final int m = ((hours - h) * 60).round();
+              return "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+            }(),
             style: GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.bold,

@@ -9,6 +9,7 @@ import 'attendanceLogsPage.dart';
 import 'attendanceExportPage.dart';
 import 'attendanceReportsPage.dart';
 import 'attendanceLogsManagerPage.dart';
+import 'attendanceExceptionsPage.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,7 +23,7 @@ class AdminLandingPage extends StatefulWidget {
 
 class _AdminLandingPageState extends State<AdminLandingPage> {
   final supabase = Supabase.instance.client;
-  String _selectedPage = 'Analytics Dashboard';
+  String _selectedPage = 'Daily Report';
   String _professorName = 'Professor';
   String _collegeCodeStr = '';
 
@@ -44,7 +45,9 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
         if (profile != null) {
           setState(() {
             _professorName = profile['display_name'] ?? 'Professor';
-            _collegeCodeStr = (profile['secret_code'] ?? profile['college_code'] ?? '').toString();
+            _collegeCodeStr =
+                (profile['secret_code'] ?? profile['college_code'] ?? '')
+                    .toString();
           });
         }
       }
@@ -63,7 +66,7 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
         return const UpdateProfessorsPage();
       case 'Dropdown options':
         return const CollegeOptionsPage();
-      case 'Analytics Dashboard':
+      case 'Daily Report':
         return const AdminAnalyticsDashboard();
       case 'Attendance Logs':
         return const AttendanceLogsPage();
@@ -73,6 +76,8 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
         return const AttendanceExportPage();
       case 'Performance Reports':
         return const AttendanceReportsPage();
+      case 'Threshold Exceptions':
+        return const AttendanceExceptionsPage();
       case 'Schedule & Settings':
         return const CollegeSchedulePage();
       case 'Settings':
@@ -109,9 +114,7 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
         ),
         selected: isSelected,
         selectedTileColor: activeColor.withValues(alpha: 0.08),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onTap: () {
           setState(() => _selectedPage = pageKey);
           Navigator.pop(context); // Close drawer
@@ -143,11 +146,15 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                       color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
-                    )
+                    ),
                   ],
                   border: Border.all(color: Colors.grey[200]!, width: 1),
                 ),
-                child: const Icon(Icons.menu_rounded, color: Colors.black87, size: 20),
+                child: const Icon(
+                  Icons.menu_rounded,
+                  color: Colors.black87,
+                  size: 20,
+                ),
               ),
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
@@ -176,7 +183,12 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
             // Header with Gradient and Live Profile
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 24),
+              padding: const EdgeInsets.only(
+                top: 60,
+                left: 20,
+                right: 20,
+                bottom: 24,
+              ),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
@@ -189,7 +201,11 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                   CircleAvatar(
                     radius: 26,
                     backgroundColor: Colors.white.withValues(alpha: 0.15),
-                    child: const Icon(Icons.person_rounded, color: Colors.white, size: 28),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -207,13 +223,18 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                         ),
                         const SizedBox(height: 2),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            _collegeCodeStr.isEmpty ? "Faculty Account" : "Code: $_collegeCodeStr",
+                            _collegeCodeStr.isEmpty
+                                ? "Faculty Account"
+                                : "Code: $_collegeCodeStr",
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -237,8 +258,8 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                 children: [
                   _buildDrawerItem(
                     icon: Icons.analytics_rounded,
-                    title: 'Analytics Dashboard',
-                    pageKey: 'Analytics Dashboard',
+                    title: 'Daily Report',
+                    pageKey: 'Daily Report',
                   ),
                   _buildDrawerItem(
                     icon: Icons.assignment_rounded,
@@ -259,6 +280,11 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                     icon: Icons.table_chart_rounded,
                     title: 'Performance Reports',
                     pageKey: 'Performance Reports',
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.assignment_late_rounded,
+                    title: 'Threshold Exceptions',
+                    pageKey: 'Threshold Exceptions',
                   ),
                   _buildDrawerItem(
                     icon: Icons.calendar_month_rounded,
@@ -291,7 +317,10 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                     pageKey: 'Dropdown options',
                   ),
                   const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 8.0,
+                    ),
                     child: Divider(),
                   ),
                   _buildDrawerItem(
@@ -306,9 +335,16 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
             // Logout Footer
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 12.0,
+              ),
               child: ListTile(
-                leading: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 22),
+                leading: const Icon(
+                  Icons.logout_rounded,
+                  color: Colors.redAccent,
+                  size: 22,
+                ),
                 title: Text(
                   'Logout',
                   style: GoogleFonts.inter(
@@ -323,10 +359,7 @@ class _AdminLandingPageState extends State<AdminLandingPage> {
                 onTap: () async {
                   final navigator = Navigator.of(context);
                   await supabase.auth.signOut();
-                  navigator.pushNamedAndRemoveUntil(
-                    '/Login',
-                    (route) => false,
-                  );
+                  navigator.pushNamedAndRemoveUntil('/Login', (route) => false);
                 },
               ),
             ),
