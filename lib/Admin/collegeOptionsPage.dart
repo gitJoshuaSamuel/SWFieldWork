@@ -278,6 +278,7 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
                                 flex: 4,
                                 child: DropdownButtonFormField<String>(
                                   value: _selectedCategory,
+                                  isExpanded: true,
                                   decoration: InputDecoration(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                     filled: true,
@@ -296,7 +297,11 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
                                   items: _categories
                                       .map((cat) => DropdownMenuItem(
                                             value: cat['db']!,
-                                            child: Text(cat['ui']!),
+                                            child: Text(
+                                              cat['ui']!,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
                                           ))
                                       .toList(),
                                   onChanged: (val) {
@@ -387,7 +392,7 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
                           selectedColor: Colors.black,
                           checkmarkColor: Colors.white,
                           backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           onSelected: (val) => setState(() => _activeFilter = 'all'),
                         ),
                         const SizedBox(width: 8),
@@ -408,7 +413,7 @@ class _CollegeOptionsPageState extends State<CollegeOptionsPage> {
                               selectedColor: _getCategoryColor(dbName),
                               checkmarkColor: Colors.white,
                               backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               onSelected: (val) => setState(() => _activeFilter = dbName),
                             ),
                           );

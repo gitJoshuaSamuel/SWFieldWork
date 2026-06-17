@@ -964,6 +964,7 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
   }) {
     return DropdownButtonFormField<String>(
       value: value,
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[600]),
@@ -981,7 +982,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
       ),
       dropdownColor: Colors.white,
       style: GoogleFonts.inter(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.w500),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+      items: items.map((e) => DropdownMenuItem(
+        value: e,
+        child: Text(
+          e,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+      )).toList(),
       onChanged: onChanged,
     );
   }
