@@ -96,7 +96,12 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
               .toList();
 
           if (sems.isEmpty) {
-            sems.addAll(['Semester I', 'Semester II', 'Semester III', 'Semester IV']);
+            sems.addAll([
+              'Semester I',
+              'Semester II',
+              'Semester III',
+              'Semester IV',
+            ]);
           }
 
           final firstSem = sems.isNotEmpty ? sems.first : 'Semester I';
@@ -107,7 +112,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
               .select()
               .eq('user_id', userId);
 
-          final List<Map<String, dynamic>> allLogs = List<Map<String, dynamic>>.from(logsData);
+          final List<Map<String, dynamic>> allLogs =
+              List<Map<String, dynamic>>.from(logsData);
 
           // Filter by selected semester
           final semesterLogs = allLogs.where((l) {
@@ -117,18 +123,32 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
 
           // Calculate actual stats
           final double semHrs = semesterLogs
-              .where((l) => l['activity_type'] == 'Field Work' && l['hours_logged'] != null)
-              .fold<double>(0.0, (sum, l) => sum + ((l['hours_logged'] as num?)?.toDouble() ?? 0.0));
+              .where(
+                (l) =>
+                    l['activity_type'] == 'Field Work' &&
+                    l['hours_logged'] != null,
+              )
+              .fold<double>(
+                0.0,
+                (sum, l) =>
+                    sum + ((l['hours_logged'] as num?)?.toDouble() ?? 0.0),
+              );
 
-          final int repTotal = semesterLogs.where((l) =>
-              l['activity_type'] == 'Report' &&
-              (l['status'] == 'On Time' || l['status'] == 'Late')
-          ).length;
+          final int repTotal = semesterLogs
+              .where(
+                (l) =>
+                    l['activity_type'] == 'Report' &&
+                    (l['status'] == 'On Time' || l['status'] == 'Late'),
+              )
+              .length;
 
-          final int confAtt = semesterLogs.where((l) =>
-              l['activity_type'] == 'Conference' &&
-              l['status'] == 'Present'
-          ).length;
+          final int confAtt = semesterLogs
+              .where(
+                (l) =>
+                    l['activity_type'] == 'Conference' &&
+                    l['status'] == 'Present',
+              )
+              .length;
 
           setState(() {
             _semesterHours = semHrs;
@@ -153,7 +173,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
               _activeCheckInTime = lastRecord['check_in_time']?.toString();
               _isCheckIn = false;
               _selectedActivity = lastRecord['activity_type'] ?? 'Field Work';
-              _selectedFieldWorkType = lastRecord['field_work_type'] ?? 'Standard';
+              _selectedFieldWorkType =
+                  lastRecord['field_work_type'] ?? 'Standard';
               _isAbsent = false; // Reset toggle if we are currently checked in
               _isHoliday = false;
             });
@@ -222,7 +243,9 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
         // Refresh stats and active session
         await _checkActiveSession();
 
-        final snackMessage = oldIsAbsent ? "Absence recorded successfully!" : "Holiday recorded successfully!";
+        final snackMessage = oldIsAbsent
+            ? "Absence recorded successfully!"
+            : "Holiday recorded successfully!";
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -294,8 +317,9 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           );
 
       final imgUrl = supabase.storage.from('attendance').getPublicUrl(path);
-      
-      final isOneShot = _selectedActivity == 'Report' || _selectedActivity == 'Conference';
+
+      final isOneShot =
+          _selectedActivity == 'Report' || _selectedActivity == 'Conference';
       String statusVal = 'Present';
       if (_selectedActivity == 'Report') {
         if (_reportDeadlineStr != null) {
@@ -304,7 +328,13 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             final parts = _reportDeadlineStr!.split(':');
             final hour = int.parse(parts[0]);
             final minute = int.parse(parts[1]);
-            final deadline = DateTime(now.year, now.month, now.day, hour, minute);
+            final deadline = DateTime(
+              now.year,
+              now.month,
+              now.day,
+              hour,
+              minute,
+            );
             if (now.isBefore(deadline) || now.isAtSameMomentAs(deadline)) {
               statusVal = 'On Time';
             } else {
@@ -356,7 +386,9 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                 'is_active': true,
                 'semester': _semester,
                 'batch': _batch,
-                'field_work_type': _selectedActivity == 'Field Work' ? _selectedFieldWorkType : null,
+                'field_work_type': _selectedActivity == 'Field Work'
+                    ? _selectedFieldWorkType
+                    : null,
               })
               .select()
               .single();
@@ -386,7 +418,9 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
               final checkIn = DateTime.parse(checkInTimeStr).toUtc();
               final checkOut = DateTime.parse(nowStr).toUtc();
               final diff = checkOut.difference(checkIn);
-              hoursLogged = double.parse((diff.inMinutes / 60.0).toStringAsFixed(2));
+              hoursLogged = double.parse(
+                (diff.inMinutes / 60.0).toStringAsFixed(2),
+              );
               if (hoursLogged < 0) {
                 hoursLogged = 0.0;
               }
@@ -421,7 +455,9 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
       } else if (_selectedActivity == 'Conference') {
         snackMessage = "Presented successfully!";
       } else {
-        snackMessage = _isCheckIn ? "Checked Out successfully!" : "Checked In successfully!";
+        snackMessage = _isCheckIn
+            ? "Checked Out successfully!"
+            : "Checked In successfully!";
       }
 
       if (!mounted) return;
@@ -431,8 +467,11 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             snackMessage,
             style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
           ),
-          backgroundColor: (_selectedActivity == 'Report' || _selectedActivity == 'Conference' || !_isCheckIn) 
-              ? Colors.teal 
+          backgroundColor:
+              (_selectedActivity == 'Report' ||
+                  _selectedActivity == 'Conference' ||
+                  !_isCheckIn)
+              ? Colors.teal
               : Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -455,8 +494,6 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
       }
     }
   }
-
-
 
   Widget _buildUnifiedStatsCard(String clockedHoursText) {
     return Container(
@@ -482,9 +519,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const StudentFilteredLogsPage(
-                  filterActivity: 'Field Work',
-                ),
+                builder: (context) =>
+                    const StudentFilteredLogsPage(filterActivity: 'Field Work'),
               ),
             ),
           ),
@@ -496,9 +532,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const StudentFilteredLogsPage(
-                  filterActivity: 'Report',
-                ),
+                builder: (context) =>
+                    const StudentFilteredLogsPage(filterActivity: 'Report'),
               ),
             ),
           ),
@@ -510,9 +545,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const StudentFilteredLogsPage(
-                  filterActivity: 'Conference',
-                ),
+                builder: (context) =>
+                    const StudentFilteredLogsPage(filterActivity: 'Conference'),
               ),
             ),
           ),
@@ -561,7 +595,11 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -606,7 +644,11 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey, size: 28),
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.grey,
+                size: 28,
+              ),
               style: GoogleFonts.outfit(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -810,7 +852,9 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
       buttonIcon = Icons.co_present_outlined;
     } else {
       buttonText = _isCheckIn ? "CHECK IN" : "CHECK OUT";
-      buttonIcon = _isCheckIn ? Icons.camera_alt_outlined : Icons.logout_outlined;
+      buttonIcon = _isCheckIn
+          ? Icons.camera_alt_outlined
+          : Icons.logout_outlined;
     }
 
     return Container(
@@ -833,7 +877,10 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
               )
             : Icon(buttonIcon, color: Colors.white, size: 24),
         label: Text(
@@ -861,7 +908,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
     // Format clocked hours cleanly to HH:MM
     final int semHrsInt = _semesterHours.toInt();
     final int semMins = ((_semesterHours - semHrsInt) * 60).round();
-    final String clockedHoursText = "${semHrsInt.toString().padLeft(2, '0')}:${semMins.toString().padLeft(2, '0')}";
+    final String clockedHoursText =
+        "${semHrsInt.toString().padLeft(2, '0')}:${semMins.toString().padLeft(2, '0')}";
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -871,7 +919,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Unified Statistics Card
-            _buildUnifiedStatsCard(clockedHoursText),
+            // _buildUnifiedStatsCard(clockedHoursText),
             const SizedBox(height: 24),
 
             // Dropdowns / Switched Action Panel
@@ -884,7 +932,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                 onChanged: (v) {
                   setState(() {
                     _selectedActivity = v!;
-                    if (_selectedActivity != 'Field Work' && _selectedActivity != 'Conference') {
+                    if (_selectedActivity != 'Field Work' &&
+                        _selectedActivity != 'Conference') {
                       _isHoliday = false;
                       _isAbsent = false;
                     }
@@ -924,7 +973,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                   },
                 ),
               ],
-              if (_selectedActivity == 'Field Work' || _selectedActivity == 'Conference') ...[
+              if (_selectedActivity == 'Field Work' ||
+                  _selectedActivity == 'Conference') ...[
                 const SizedBox(height: 16),
                 _buildSwitchCard(
                   title: "Mark as Holiday",
@@ -949,9 +999,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
             const SizedBox(height: 48),
 
             // Action Button & Instructions
-            Center(
-              child: _buildActionButton(),
-            ),
+            Center(child: _buildActionButton()),
             const SizedBox(height: 32),
             Center(
               child: Text(
@@ -963,6 +1011,8 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                 ),
               ),
             ),
+            const SizedBox(height: 32),
+            _buildUnifiedStatsCard(clockedHoursText),
           ],
         ),
       ),
@@ -991,7 +1041,20 @@ class AttendanceLogsView extends StatelessWidget {
     if (timeStr == null) return '';
     try {
       final dt = DateTime.parse(timeStr).toLocal();
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return "${dt.day} ${months[dt.month - 1]}";
     } catch (e) {
       return timeStr;
@@ -1036,7 +1099,8 @@ class AttendanceLogsView extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(String status) {
-    if (status != 'Absent' && status != 'Holiday') return const SizedBox.shrink();
+    if (status != 'Absent' && status != 'Holiday')
+      return const SizedBox.shrink();
     final isAbsent = status == 'Absent';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1067,8 +1131,9 @@ class AttendanceLogsView extends StatelessWidget {
       final diff = checkOut.difference(checkIn);
       final hours = diff.inHours;
       final minutes = diff.inMinutes.remainder(60);
-      
-      final String durationText = "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}";
+
+      final String durationText =
+          "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}";
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1131,7 +1196,9 @@ class AttendanceLogsView extends StatelessWidget {
           );
         }
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Colors.black));
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.black),
+          );
         }
 
         final logs = snapshot.data!;
@@ -1140,7 +1207,11 @@ class AttendanceLogsView extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.history_toggle_off_rounded, size: 64, color: Colors.grey[300]),
+                Icon(
+                  Icons.history_toggle_off_rounded,
+                  size: 64,
+                  color: Colors.grey[300],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   "No attendance records found",
@@ -1210,7 +1281,10 @@ class AttendanceLogsView extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.grey[100],
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.grey[200]!, width: 1.5),
+                          border: Border.all(
+                            color: Colors.grey[200]!,
+                            width: 1.5,
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
@@ -1222,8 +1296,8 @@ class AttendanceLogsView extends StatelessWidget {
                                     isAbsent
                                         ? Icons.person_off_rounded
                                         : (isHoliday
-                                            ? Icons.beach_access_rounded
-                                            : Icons.person_rounded),
+                                              ? Icons.beach_access_rounded
+                                              : Icons.person_rounded),
                                     color: Colors.grey,
                                     size: 28,
                                   ),
@@ -1232,8 +1306,8 @@ class AttendanceLogsView extends StatelessWidget {
                                   isAbsent
                                       ? Icons.person_off_rounded
                                       : (isHoliday
-                                          ? Icons.beach_access_rounded
-                                          : Icons.person_rounded),
+                                            ? Icons.beach_access_rounded
+                                            : Icons.person_rounded),
                                   color: Colors.grey,
                                   size: 28,
                                 ),
@@ -1251,7 +1325,9 @@ class AttendanceLogsView extends StatelessWidget {
                               children: [
                                 Row(
                                   children: [
-                                    _buildActivityBadge(log['activity_type'] ?? 'Field Work'),
+                                    _buildActivityBadge(
+                                      log['activity_type'] ?? 'Field Work',
+                                    ),
                                     if (isAbsent || isHoliday) ...[
                                       const SizedBox(width: 8),
                                       _buildStatusBadge(logStatus),
@@ -1259,21 +1335,28 @@ class AttendanceLogsView extends StatelessWidget {
                                   ],
                                 ),
                                 if (checkOutTime != null &&
-                                     !isAbsent &&
-                                     !isHoliday &&
-                                     log['activity_type'] == 'Field Work')
-                                   _buildDurationBadge(log['check_in_time'], checkOutTime),
+                                    !isAbsent &&
+                                    !isHoliday &&
+                                    log['activity_type'] == 'Field Work')
+                                  _buildDurationBadge(
+                                    log['check_in_time'],
+                                    checkOutTime,
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            
+
                             if (isAbsent || isHoliday) ...[
                               // Absent / Holiday representation
                               Row(
                                 children: [
                                   Icon(
-                                    isAbsent ? Icons.person_off_rounded : Icons.beach_access_rounded,
-                                    color: isAbsent ? Colors.redAccent : const Color(0xFFF2994A),
+                                    isAbsent
+                                        ? Icons.person_off_rounded
+                                        : Icons.beach_access_rounded,
+                                    color: isAbsent
+                                        ? Colors.redAccent
+                                        : const Color(0xFFF2994A),
                                     size: 14,
                                   ),
                                   const SizedBox(width: 6),
@@ -1287,13 +1370,18 @@ class AttendanceLogsView extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            ] else if (isReport || log['activity_type'] == 'Conference') ...[
+                            ] else if (isReport ||
+                                log['activity_type'] == 'Conference') ...[
                               // One-shot representation (Report or Conference)
                               Row(
                                 children: [
                                   Icon(
-                                    isReport ? Icons.task_alt_rounded : Icons.co_present_rounded,
-                                    color: isReport ? Colors.teal : Colors.purple,
+                                    isReport
+                                        ? Icons.task_alt_rounded
+                                        : Icons.co_present_rounded,
+                                    color: isReport
+                                        ? Colors.teal
+                                        : Colors.purple,
                                     size: 14,
                                   ),
                                   const SizedBox(width: 6),
@@ -1311,7 +1399,11 @@ class AttendanceLogsView extends StatelessWidget {
                               // Check-in info
                               Row(
                                 children: [
-                                  const Icon(Icons.login_rounded, color: Colors.green, size: 14),
+                                  const Icon(
+                                    Icons.login_rounded,
+                                    color: Colors.green,
+                                    size: 14,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     "In: ${_formatTime(log['check_in_time'])} (${_formatDate(log['check_in_time'])})",
@@ -1330,7 +1422,9 @@ class AttendanceLogsView extends StatelessWidget {
                                 children: [
                                   Icon(
                                     Icons.logout_rounded,
-                                    color: checkOutTime != null ? Colors.red : Colors.orange,
+                                    color: checkOutTime != null
+                                        ? Colors.red
+                                        : Colors.orange,
                                     size: 14,
                                   ),
                                   const SizedBox(width: 6),
@@ -1340,8 +1434,12 @@ class AttendanceLogsView extends StatelessWidget {
                                         : "Active session",
                                     style: GoogleFonts.outfit(
                                       fontSize: 13,
-                                      color: checkOutTime != null ? Colors.black87 : Colors.orange[800],
-                                      fontWeight: checkOutTime != null ? FontWeight.w400 : FontWeight.w600,
+                                      color: checkOutTime != null
+                                          ? Colors.black87
+                                          : Colors.orange[800],
+                                      fontWeight: checkOutTime != null
+                                          ? FontWeight.w400
+                                          : FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -1353,18 +1451,26 @@ class AttendanceLogsView extends StatelessWidget {
                       const SizedBox(width: 12),
 
                       // Map View Button
-                      if (log['check_in_lat'] != null && log['check_in_lng'] != null)
+                      if (log['check_in_lat'] != null &&
+                          log['check_in_lng'] != null)
                         Container(
                           height: 40,
                           width: 40,
                           decoration: BoxDecoration(
                             color: Colors.grey[50],
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[200]!, width: 1),
+                            border: Border.all(
+                              color: Colors.grey[200]!,
+                              width: 1,
+                            ),
                           ),
                           child: IconButton(
                             padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.map_rounded, color: Colors.blueAccent, size: 20),
+                            icon: const Icon(
+                              Icons.map_rounded,
+                              color: Colors.blueAccent,
+                              size: 20,
+                            ),
                             onPressed: () => _openMap(context, log),
                           ),
                         ),
@@ -1406,7 +1512,7 @@ class AttendanceLogsView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Header Info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1440,7 +1546,11 @@ class AttendanceLogsView extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20, color: Colors.black87),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 20,
+                        color: Colors.black87,
+                      ),
                       onPressed: () => Navigator.pop(c),
                     ),
                   ),
@@ -1458,19 +1568,26 @@ class AttendanceLogsView extends StatelessWidget {
                 ),
                 child: FlutterMap(
                   options: MapOptions(
-                    initialCenter: LatLng(log['check_in_lat'], log['check_in_lng']),
+                    initialCenter: LatLng(
+                      log['check_in_lat'],
+                      log['check_in_lng'],
+                    ),
                     initialZoom: 15,
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.joshua.socialworkFieldWork',
                     ),
                     MarkerLayer(
                       markers: [
                         // Check In Marker
                         Marker(
-                          point: LatLng(log['check_in_lat'], log['check_in_lng']),
+                          point: LatLng(
+                            log['check_in_lat'],
+                            log['check_in_lng'],
+                          ),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
@@ -1493,7 +1610,10 @@ class AttendanceLogsView extends StatelessWidget {
                         // Check Out Marker
                         if (log['check_out_lat'] != null)
                           Marker(
-                            point: LatLng(log['check_out_lat'], log['check_out_lng']),
+                            point: LatLng(
+                              log['check_out_lat'],
+                              log['check_out_lng'],
+                            ),
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
