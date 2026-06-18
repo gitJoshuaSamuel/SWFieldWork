@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.joshua.socialworkFieldWork" "\0"
-            VALUE "FileDescription", "field_work_2" "\0"
+            VALUE "FileDescription", "FieldLogix" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "field_work_2" "\0"
+            VALUE "InternalName", "FieldLogix" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.joshua.socialworkFieldWork. All rights reserved." "\0"
-            VALUE "OriginalFilename", "field_work_2.exe" "\0"
-            VALUE "ProductName", "field_work_2" "\0"
+            VALUE "OriginalFilename", "FieldLogix.exe" "\0"
+            VALUE "ProductName", "FieldLogix" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
