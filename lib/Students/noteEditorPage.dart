@@ -2,6 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
 
 class NoteEditorPage extends StatefulWidget {
   final Map<String, dynamic>? note; // Null if creating a new note
@@ -71,18 +76,120 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     }
   }
 
+  String _generateUuidV4() {
+    final Random random = Random.secure();
+    final List<int> values = List<int>.generate(16, (i) => random.nextInt(256));
+    values[6] = (values[6] & 0x0f) | 0x40; // set version to 4
+    values[8] = (values[8] & 0x3f) | 0x80; // set variant to RFC4122
+    final StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < 16; i++) {
+      if (i == 4 || i == 6 || i == 8 || i == 10) {
+        buffer.write('-');
+      }
+      buffer.write(values[i].toRadixString(16).padLeft(2, '0'));
+    }
+    return buffer.toString();
+  }
+
+  bool _isNetworkError(dynamic error) {
+    if (error is SocketException || error is HttpException) return true;
+    final errStr = error.toString().toLowerCase();
+    return errStr.contains('socketexception') ||
+        errStr.contains('network') ||
+        errStr.contains('failed to host') ||
+        errStr.contains('connection failed') ||
+        errStr.contains('timed out') ||
+        errStr.contains('timeout') ||
+        errStr.contains('http status code 0');
+  }
+
+  Future<void> _updateLocalCache(Map<String, dynamic> noteData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final notesStr = prefs.getString('cached_student_notes');
+      final List<dynamic> localNotes = notesStr != null ? jsonDecode(notesStr) : [];
+      
+      final int idx = localNotes.indexWhere((n) => n['id'] == noteData['id']);
+      if (idx != -1) {
+        localNotes[idx] = noteData;
+      } else {
+        localNotes.insert(0, noteData);
+      }
+      await prefs.setString('cached_student_notes', jsonEncode(localNotes));
+    } catch (e) {
+      debugPrint("Error updating local notes cache: $e");
+    }
+  }
+
+  Future<void> _queueNoteUpsert(Map<String, dynamic> noteData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final queueStr = prefs.getString('pending_notes_upsert');
+      final List<dynamic> queue = queueStr != null ? jsonDecode(queueStr) : [];
+
+      final int idx = queue.indexWhere((n) => n['id'] == noteData['id']);
+      if (idx != -1) {
+        queue[idx] = noteData;
+      } else {
+        queue.add(noteData);
+      }
+      await prefs.setString('pending_notes_upsert', jsonEncode(queue));
+    } catch (e) {
+      debugPrint("Error queuing note upsert: $e");
+    }
+  }
+
+  Future<void> _deleteLocalCache(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final notesStr = prefs.getString('cached_student_notes');
+      if (notesStr != null) {
+        final List<dynamic> localNotes = jsonDecode(notesStr);
+        localNotes.removeWhere((n) => n['id'] == id);
+        await prefs.setString('cached_student_notes', jsonEncode(localNotes));
+      }
+    } catch (e) {
+      debugPrint("Error deleting note from cache: $e");
+    }
+  }
+
+  Future<void> _queueNoteDelete(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final upsertsStr = prefs.getString('pending_notes_upsert');
+      if (upsertsStr != null) {
+        final List<dynamic> upserts = jsonDecode(upsertsStr);
+        final int initialLen = upserts.length;
+        upserts.removeWhere((n) => n['id'] == id);
+        await prefs.setString('pending_notes_upsert', jsonEncode(upserts));
+        
+        if (upserts.length < initialLen) {
+          return;
+        }
+      }
+
+      final deletesStr = prefs.getString('pending_notes_delete');
+      final List<dynamic> deletes = deletesStr != null ? jsonDecode(deletesStr) : [];
+      if (!deletes.contains(id)) {
+        deletes.add(id);
+      }
+      await prefs.setString('pending_notes_delete', jsonEncode(deletes));
+    } catch (e) {
+      debugPrint("Error queuing note delete: $e");
+    }
+  }
+
   Future<void> _saveNote() async {
     if (!_hasUnsavedChanges) return;
 
     final title = _titleController.text.trim();
     final description = _descController.text.trim();
 
-    // Don't auto-save if both title and description are blank for a new note
     if (_noteId == null && title.isEmpty && description.isEmpty) {
       return;
     }
 
-    // Use a fallback title if user hasn't typed one
     final displayTitle = title.isEmpty ? "Untitled Note" : title;
 
     if (mounted) {
@@ -92,20 +199,22 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       });
     }
 
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final data = {
+      'user_id': userId,
+      'title': displayTitle,
+      'description': description,
+      'note_date': _selectedDate.toUtc().toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final data = {
-        'user_id': userId,
-        'title': displayTitle,
-        'description': description,
-        'note_date': _selectedDate.toUtc().toIso8601String(),
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      };
-
       if (_noteId == null) {
-        // Insert
+        final tempId = _generateUuidV4();
+        data['id'] = tempId;
+
         final response = await supabase
             .from('student_notes')
             .insert(data)
@@ -113,9 +222,11 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
             .single();
         _noteId = response['id'];
       } else {
-        // Update
+        data['id'] = _noteId!;
         await supabase.from('student_notes').update(data).eq('id', _noteId!);
       }
+
+      await _updateLocalCache(data);
 
       if (mounted) {
         setState(() {
@@ -128,11 +239,28 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-          _saveStatus = "Save failed";
-        });
+      debugPrint("Save failed: $e");
+      if (_isNetworkError(e)) {
+        _noteId ??= _generateUuidV4();
+        data['id'] = _noteId!;
+
+        await _updateLocalCache(data);
+        await _queueNoteUpsert(data);
+
+        if (mounted) {
+          setState(() {
+            _hasUnsavedChanges = false;
+            _isSaving = false;
+            _saveStatus = "Saved offline";
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+            _saveStatus = "Save failed";
+          });
+        }
       }
     }
   }
@@ -197,10 +325,21 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
 
     if (confirm == true) {
       try {
-        await supabase.from('student_notes').delete().eq('id', _noteId!);
         _autoSaveTimer?.cancel();
-        _hasUnsavedChanges = false; // Prevent auto-save on dispose
-        navigator.pop(true); // Return true to indicate deletion
+        _hasUnsavedChanges = false;
+
+        try {
+          await supabase.from('student_notes').delete().eq('id', _noteId!);
+          await _deleteLocalCache(_noteId!);
+        } catch (e) {
+          if (_isNetworkError(e)) {
+            await _deleteLocalCache(_noteId!);
+            await _queueNoteDelete(_noteId!);
+          } else {
+            rethrow;
+          }
+        }
+        navigator.pop(true);
       } catch (e) {
         scaffoldMessenger.showSnackBar(
           SnackBar(

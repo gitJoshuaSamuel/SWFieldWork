@@ -3,6 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:field_work_2/Students/studentProfileDetailsPage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
+
 
 class StudentProfilePage extends StatefulWidget {
   const StudentProfilePage({super.key});
@@ -30,6 +34,66 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   // Date range filter
   DateTime? _rangeStartDate;
   DateTime? _rangeEndDate;
+
+  bool _isOffline = false;
+
+  bool _isNetworkError(dynamic error) {
+    if (error is SocketException || error is HttpException) return true;
+    final errStr = error.toString().toLowerCase();
+    return errStr.contains('socketexception') ||
+        errStr.contains('network') ||
+        errStr.contains('failed to host') ||
+        errStr.contains('connection failed') ||
+        errStr.contains('timed out') ||
+        errStr.contains('timeout') ||
+        errStr.contains('http status code 0');
+  }
+
+  Future<void> _saveCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_profile != null) {
+        await prefs.setString('cached_full_profile', jsonEncode(_profile));
+      }
+      await prefs.setString('cached_semesters_list', jsonEncode(_semesters));
+      await prefs.setString('cached_semester_requirements', jsonEncode(_semesterRequirements));
+      await prefs.setString('cached_all_attendance_logs', jsonEncode(_logs));
+    } catch (e) {
+      debugPrint("Error saving profile cache: $e");
+    }
+  }
+
+  Future<void> _loadCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final profileStr = prefs.getString('cached_full_profile');
+      if (profileStr != null) {
+        _profile = jsonDecode(profileStr) as Map<String, dynamic>?;
+        if (_profile != null) {
+          _selectedSemester = _profile!['semester']?.toString().trim();
+        }
+      }
+      final semsStr = prefs.getString('cached_semesters_list');
+      if (semsStr != null) {
+        _semesters = List<String>.from(jsonDecode(semsStr));
+      } else {
+        _semesters = ['Semester I', 'Semester II', 'Semester III', 'Semester IV'];
+      }
+      if (_selectedSemester == null || !_semesters.contains(_selectedSemester)) {
+        _selectedSemester = _semesters.isNotEmpty ? _semesters.first : 'Semester I';
+      }
+      final reqsStr = prefs.getString('cached_semester_requirements');
+      if (reqsStr != null) {
+        _semesterRequirements = List<Map<String, dynamic>>.from(jsonDecode(reqsStr));
+      }
+      final logsStr = prefs.getString('cached_all_attendance_logs');
+      if (logsStr != null) {
+        _logs = List<Map<String, dynamic>>.from(jsonDecode(logsStr));
+      }
+    } catch (e) {
+      debugPrint("Error loading profile cache: $e");
+    }
+  }
 
   @override
   void initState() {
@@ -104,17 +168,38 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             }
             _semesterRequirements = List<Map<String, dynamic>>.from(reqData);
             _logs = List<Map<String, dynamic>>.from(logsData);
+            _isOffline = false;
           });
+          await _saveCache();
         }
       }
     } catch (e) {
       debugPrint("Error loading student profile details: $e");
+      if (_isNetworkError(e)) {
+        setState(() {
+          _isOffline = true;
+        });
+        await _loadCache();
+      }
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _uploadAvatar() async {
+    if (_isOffline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Uploading profile pictures requires an active internet connection.",
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+          ),
+          backgroundColor: Colors.orange[800],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
@@ -346,11 +431,36 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        child: Column(
+          children: [
+            if (_isOffline)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                color: const Color(0xFFE65100),
+                child: Row(
+                  children: [
+                    const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "Bad internet or no internet, switching to offline mode",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
               // --- PROFILE BANNER CARD ---
               GestureDetector(
                 onTap: () {
@@ -729,6 +839,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           ),
         ),
       ),
+    ],
+  ),
+),
     );
   }
 

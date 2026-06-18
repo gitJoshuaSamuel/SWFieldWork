@@ -3,6 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../widgets/adaptive_map_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
+
 
 class StudentFilteredLogsPage extends StatefulWidget {
   final String filterActivity;
@@ -20,6 +24,77 @@ class StudentFilteredLogsPage extends StatefulWidget {
 class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
   final supabase = Supabase.instance.client;
   final Set<String> _expandedLogIds = {};
+  bool _isLoading = true;
+  bool _isOffline = false;
+  List<Map<String, dynamic>> _logs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLogs();
+  }
+
+  bool _isNetworkError(dynamic error) {
+    if (error is SocketException || error is HttpException) return true;
+    final errStr = error.toString().toLowerCase();
+    return errStr.contains('socketexception') ||
+        errStr.contains('network') ||
+        errStr.contains('failed to host') ||
+        errStr.contains('connection failed') ||
+        errStr.contains('timed out') ||
+        errStr.contains('timeout') ||
+        errStr.contains('http status code 0');
+  }
+
+  Future<void> _loadLogs() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await supabase
+          .from('attendance_logs')
+          .select()
+          .eq('user_id', userId)
+          .order('check_in_time');
+
+      final List<Map<String, dynamic>> fetchedLogs = List<Map<String, dynamic>>.from(response);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_all_attendance_logs', jsonEncode(fetchedLogs));
+
+      if (mounted) {
+        setState(() {
+          _logs = fetchedLogs;
+          _isOffline = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading student logs: $e");
+      if (_isNetworkError(e)) {
+        final prefs = await SharedPreferences.getInstance();
+        final logsStr = prefs.getString('cached_all_attendance_logs');
+        if (mounted) {
+          setState(() {
+            if (logsStr != null) {
+              _logs = List<Map<String, dynamic>>.from(jsonDecode(logsStr));
+            }
+            _isOffline = true;
+          });
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   String _formatTime(String? timeStr) {
     if (timeStr == null) return '--:--';
@@ -207,72 +282,89 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
                 style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey[600]),
               ),
             )
-            : StreamBuilder<List<Map<String, dynamic>>>(
-                stream: supabase
-                    .from('attendance_logs')
-                    .stream(primaryKey: ['id'])
-                    .eq('user_id', userId)
-                    .order('check_in_time'),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        "Error loading history: ${snapshot.error}",
-                        style: GoogleFonts.outfit(),
-                      ),
-                    );
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
-                    );
-                  }
-
-                  final allLogs = snapshot.data!;
-                  final logs = widget.filterActivity == 'All'
-                      ? allLogs
-                      : allLogs.where((l) => l['activity_type'] == widget.filterActivity).toList();
-
-                  if (logs.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.history_toggle_off_rounded,
-                            size: 64,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            widget.filterActivity == 'All'
-                                ? "No attendance logs found"
-                                : "No records found for ${widget.filterActivity}",
-                            style: GoogleFonts.outfit(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
+          : _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF1E88E5)),
+                )
+              : Column(
+                  children: [
+                    if (_isOffline)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        color: const Color(0xFFE65100),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                "Bad internet or no internet, switching to offline mode",
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    );
-                  }
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _loadLogs,
+                        color: const Color(0xFF1E88E5),
+                        child: () {
+                          final logs = widget.filterActivity == 'All'
+                              ? _logs
+                              : _logs.where((l) => l['activity_type'] == widget.filterActivity).toList();
 
-                // Sort logs descending (newest check_in_time first)
-                final sortedLogs = List<Map<String, dynamic>>.from(logs);
-                sortedLogs.sort((a, b) {
-                  final aTime = DateTime.tryParse(a['check_in_time'] ?? '') ?? DateTime(1970);
-                  final bTime = DateTime.tryParse(b['check_in_time'] ?? '') ?? DateTime(1970);
-                  return bTime.compareTo(aTime);
-                });
+                          if (logs.isEmpty) {
+                            return ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+                                Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.history_toggle_off_rounded,
+                                        size: 64,
+                                        color: Colors.grey[300],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        widget.filterActivity == 'All'
+                                            ? "No attendance logs found"
+                                            : "No records found for ${widget.filterActivity}",
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 16,
+                                          color: Colors.grey[600],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
 
-                return ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  itemCount: sortedLogs.length,
-                  itemBuilder: (context, index) {
-                    final log = sortedLogs[index];
+                          // Sort logs descending (newest check_in_time first)
+                          final sortedLogs = List<Map<String, dynamic>>.from(logs);
+                          sortedLogs.sort((a, b) {
+                            final aTime = DateTime.tryParse(a['check_in_time'] ?? '') ?? DateTime(1970);
+                            final bTime = DateTime.tryParse(b['check_in_time'] ?? '') ?? DateTime(1970);
+                            return bTime.compareTo(aTime);
+                          });
+
+                          return ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(16),
+                            itemCount: sortedLogs.length,
+                            itemBuilder: (context, index) {
+                              final log = sortedLogs[index];
                     final logId = log['id']?.toString() ?? index.toString();
                     final isExpanded = _expandedLogIds.contains(logId);
                     final logStatus = log['status'] ?? 'Present';
@@ -498,10 +590,13 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
                         ],
                       ),
                     );
-                  },
-                );
-              },
+                    },
+                  );
+                }(),
+              ),
             ),
+          ],
+        ),
     );
   }
 }

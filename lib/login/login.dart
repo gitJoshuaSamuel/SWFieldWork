@@ -15,6 +15,29 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final supabase = Supabase.instance.client;
 
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingSession();
+  }
+
+  void _checkExistingSession() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final session = supabase.auth.currentSession;
+      final user = supabase.auth.currentUser;
+      if (session != null && user != null) {
+        final role = user.userMetadata?['role'];
+        if (role == 'Professor') {
+          Navigator.pushReplacementNamed(context, '/professors-landing');
+        } else if (role == 'Student') {
+          Navigator.pushReplacementNamed(context, '/students-landing');
+        } else if (role == 'Admin') {
+          Navigator.pushReplacementNamed(context, '/admin-landing');
+        }
+      }
+    });
+  }
+
   final formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
