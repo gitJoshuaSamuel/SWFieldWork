@@ -5,6 +5,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../widgets/adaptive_map_view.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
 
 class AttendanceMainPage extends StatelessWidget {
   const AttendanceMainPage({super.key});
@@ -43,10 +48,258 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
   int _reportsTotal = 0;
   int _confAttended = 0;
 
+  bool _isSyncing = false;
+  int _pendingSyncCount = 0;
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
-    _checkActiveSession();
+    _loadCache().then((_) {
+      _checkActiveSession();
+      _syncOfflineLogs();
+    });
+  }
+
+  String _generateUuidV4() {
+    final Random random = Random.secure();
+    final List<int> values = List<int>.generate(16, (i) => random.nextInt(256));
+    values[6] = (values[6] & 0x0f) | 0x40; // set version to 4
+    values[8] = (values[8] & 0x3f) | 0x80; // set variant to RFC4122
+    final StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < 16; i++) {
+      if (i == 4 || i == 6 || i == 8 || i == 10) {
+        buffer.write('-');
+      }
+      buffer.write(values[i].toRadixString(16).padLeft(2, '0'));
+    }
+    return buffer.toString();
+  }
+
+  Future<void> _saveCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_profile', jsonEncode({
+        'semester': _semester,
+        'batch': _batch,
+        'college_code': _collegeCode,
+        'report_deadline': _reportDeadlineStr,
+      }));
+      await prefs.setString('cached_stats', jsonEncode({
+        'semesterHours': _semesterHours,
+        'reportsTotal': _reportsTotal,
+        'confAttended': _confAttended,
+      }));
+      await prefs.setString('cached_active_session', jsonEncode({
+        'activeRecordId': _activeRecordId,
+        'activeCheckInTime': _activeCheckInTime,
+        'selectedActivity': _selectedActivity,
+        'selectedFieldWorkType': _selectedFieldWorkType,
+        'isCheckIn': _isCheckIn,
+      }));
+    } catch (e) {
+      debugPrint("Error saving cache: $e");
+    }
+  }
+
+  Future<void> _loadCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final profileStr = prefs.getString('cached_profile');
+      if (profileStr != null) {
+        final profile = jsonDecode(profileStr);
+        _semester = profile['semester'] as String?;
+        _batch = profile['batch'] as String?;
+        _collegeCode = profile['college_code'] as int?;
+        _reportDeadlineStr = profile['report_deadline'] as String?;
+      }
+
+      final statsStr = prefs.getString('cached_stats');
+      if (statsStr != null) {
+        final stats = jsonDecode(statsStr);
+        _semesterHours = (stats['semesterHours'] as num?)?.toDouble() ?? 0.0;
+        _reportsTotal = stats['reportsTotal'] as int? ?? 0;
+        _confAttended = stats['confAttended'] as int? ?? 0;
+      }
+
+      final sessionStr = prefs.getString('cached_active_session');
+      if (sessionStr != null) {
+        final session = jsonDecode(sessionStr);
+        _activeRecordId = session['activeRecordId'] as String?;
+        _activeCheckInTime = session['activeCheckInTime'] as String?;
+        _selectedActivity = session['selectedActivity'] as String? ?? 'Field Work';
+        _selectedFieldWorkType = session['selectedFieldWorkType'] as String? ?? 'Standard';
+        _isCheckIn = session['isCheckIn'] as bool? ?? true;
+      }
+      
+      final queueStr = prefs.getString('pending_attendance_logs');
+      if (queueStr != null) {
+        final List<dynamic> queue = jsonDecode(queueStr);
+        setState(() {
+          _pendingSyncCount = queue.length;
+        });
+      } else {
+        setState(() {
+          _pendingSyncCount = 0;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading cache: $e");
+    }
+  }
+
+  bool _isNetworkError(dynamic error) {
+    if (error is SocketException || error is HttpException) return true;
+    final errStr = error.toString().toLowerCase();
+    return errStr.contains('socketexception') ||
+        errStr.contains('network') ||
+        errStr.contains('failed to host') ||
+        errStr.contains('connection failed') ||
+        errStr.contains('timed out') ||
+        errStr.contains('timeout') ||
+        errStr.contains('http status code 0');
+  }
+
+  Future<void> _syncOfflineLogs() async {
+    if (_isSyncing) return;
+    setState(() {
+      _isSyncing = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final queueStr = prefs.getString('pending_attendance_logs');
+      if (queueStr == null) {
+        setState(() {
+          _isSyncing = false;
+          _pendingSyncCount = 0;
+        });
+        return;
+      }
+
+      final List<dynamic> queue = jsonDecode(queueStr);
+      if (queue.isEmpty) {
+        setState(() {
+          _isSyncing = false;
+          _pendingSyncCount = 0;
+        });
+        return;
+      }
+
+      final List<dynamic> remainingQueue = [];
+      int syncSuccessCount = 0;
+
+      for (var item in queue) {
+        final log = Map<String, dynamic>.from(item);
+        try {
+          // 1. Upload check-in photo if locally stored and not yet uploaded
+          if (log['check_in_img_url'] == null && log['check_in_local_path'] != null) {
+            final file = File(log['check_in_local_path']);
+            if (await file.exists()) {
+              final bytes = await file.readAsBytes();
+              final fileName = 'offline_${log['id']}_in.jpg';
+              final storagePath = '${log['user_id']}/$fileName';
+              await supabase.storage.from('attendance').uploadBinary(
+                storagePath,
+                bytes,
+                fileOptions: const FileOptions(contentType: 'image/jpeg'),
+              );
+              log['check_in_img_url'] = supabase.storage.from('attendance').getPublicUrl(storagePath);
+            }
+          }
+
+          // 2. Upload check-out photo if locally stored and not yet uploaded
+          if (log['check_out_img_url'] == null && log['check_out_local_path'] != null) {
+            final file = File(log['check_out_local_path']);
+            if (await file.exists()) {
+              final bytes = await file.readAsBytes();
+              final fileName = 'offline_${log['id']}_out.jpg';
+              final storagePath = '${log['user_id']}/$fileName';
+              await supabase.storage.from('attendance').uploadBinary(
+                storagePath,
+                bytes,
+                fileOptions: const FileOptions(contentType: 'image/jpeg'),
+              );
+              log['check_out_img_url'] = supabase.storage.from('attendance').getPublicUrl(storagePath);
+            }
+          }
+
+          // 3. Upsert record to database
+          await supabase.from('attendance_logs').upsert({
+            'id': log['id'],
+            'user_id': log['user_id'],
+            'activity_type': log['activity_type'],
+            'status': log['status'],
+            'check_in_lat': log['check_in_lat'],
+            'check_in_lng': log['check_in_lng'],
+            'check_in_img_url': log['check_in_img_url'],
+            'check_in_time': log['check_in_time'],
+            'check_out_lat': log['check_out_lat'],
+            'check_out_lng': log['check_out_lng'],
+            'check_out_img_url': log['check_out_img_url'],
+            'check_out_time': log['check_out_time'],
+            'is_active': log['is_active'],
+            'semester': log['semester'],
+            'batch': log['batch'],
+            'field_work_type': log['field_work_type'],
+            'hours_logged': log['hours_logged'],
+          });
+
+          // 4. Clean up local files
+          if (log['check_in_local_path'] != null) {
+            final file = File(log['check_in_local_path']);
+            if (await file.exists()) {
+              await file.delete();
+            }
+          }
+          if (log['check_out_local_path'] != null) {
+            final file = File(log['check_out_local_path']);
+            if (await file.exists()) {
+              await file.delete();
+            }
+          }
+
+          syncSuccessCount++;
+        } catch (e) {
+          debugPrint("Failed to sync log ${log['id']}: $e");
+          remainingQueue.add(log);
+        }
+      }
+
+      await prefs.setString('pending_attendance_logs', jsonEncode(remainingQueue));
+      
+      setState(() {
+        _pendingSyncCount = remainingQueue.length;
+        _isSyncing = false;
+        if (remainingQueue.isEmpty) {
+          _isOffline = false;
+        }
+      });
+
+      if (syncSuccessCount > 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Successfully synchronized $syncSuccessCount offline log(s)!",
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+              ),
+              backgroundColor: Colors.teal,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+        await _checkActiveSession();
+      }
+    } catch (e) {
+      debugPrint("Error syncing offline logs: $e");
+      setState(() {
+        _isSyncing = false;
+      });
+    }
   }
 
   Future<void> _checkActiveSession() async {
@@ -192,8 +445,18 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           });
         }
       }
+      setState(() {
+        _isOffline = false;
+      });
+      await _saveCache();
     } catch (e) {
       debugPrint("Error checking active session: $e");
+      if (_isNetworkError(e)) {
+        setState(() {
+          _isOffline = true;
+        });
+        await _loadCache();
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -237,9 +500,10 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           _isCheckIn = true;
           _isAbsent = false;
           _isHoliday = false;
+          _isOffline = false;
         });
 
-        // Refresh stats and active session
+        await _saveCache();
         await _checkActiveSession();
 
         final snackMessage = oldIsAbsent
@@ -260,14 +524,77 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           ),
         );
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: $e"),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (_isNetworkError(e)) {
+          // --- OFFLINE FLOW FOR ABSENT / HOLIDAY ---
+          final logId = _generateUuidV4();
+          final localLog = {
+            'id': logId,
+            'user_id': userId,
+            'activity_type': _selectedActivity,
+            'status': _isAbsent ? 'Absent' : 'Holiday',
+            'check_in_lat': null,
+            'check_in_lng': null,
+            'check_in_local_path': null,
+            'check_in_img_url': null,
+            'check_in_time': nowStr,
+            'check_out_lat': null,
+            'check_out_lng': null,
+            'check_out_local_path': null,
+            'check_out_img_url': null,
+            'check_out_time': nowStr,
+            'is_active': false,
+            'semester': _semester,
+            'batch': _batch,
+            'field_work_type': _selectedActivity == 'Field Work'
+                ? (_isHoliday ? 'Holiday' : _selectedFieldWorkType)
+                : null,
+            'hours_logged': 0.0,
+          };
+
+          final prefs = await SharedPreferences.getInstance();
+          final queueStr = prefs.getString('pending_attendance_logs');
+          final List<dynamic> queue = queueStr != null ? jsonDecode(queueStr) : [];
+          queue.add(localLog);
+          await prefs.setString('pending_attendance_logs', jsonEncode(queue));
+
+          setState(() {
+            _activeRecordId = null;
+            _isCheckIn = true;
+            _isAbsent = false;
+            _isHoliday = false;
+            _pendingSyncCount = queue.length;
+            _isOffline = true;
+          });
+
+          await _saveCache();
+
+          final snackMessage = _isAbsent
+              ? "Absence recorded offline successfully!"
+              : "Holiday recorded offline successfully!";
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "$snackMessage (Awaiting sync)",
+                style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+              ),
+              backgroundColor: Colors.orange[800],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error: $e"),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -302,20 +629,30 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // 4. Upload Photo
+      // We attempt to upload photo. If it throws a network error, we save locally.
+      String? imgUrl;
       final bytes = await photo.readAsBytes();
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final path = '$userId/$fileName';
 
-      await supabase.storage
-          .from('attendance')
-          .uploadBinary(
-            path,
-            bytes,
-            fileOptions: const FileOptions(contentType: 'image/jpeg'),
-          );
-
-      final imgUrl = supabase.storage.from('attendance').getPublicUrl(path);
+      bool uploadSuccess = false;
+      try {
+        await supabase.storage
+            .from('attendance')
+            .uploadBinary(
+              path,
+              bytes,
+              fileOptions: const FileOptions(contentType: 'image/jpeg'),
+            );
+        imgUrl = supabase.storage.from('attendance').getPublicUrl(path);
+        uploadSuccess = true;
+      } catch (uploadError) {
+        if (_isNetworkError(uploadError)) {
+          uploadSuccess = false;
+        } else {
+          rethrow;
+        }
+      }
 
       final isOneShot =
           _selectedActivity == 'Report' || _selectedActivity == 'Conference';
@@ -347,146 +684,347 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
         }
       }
 
-      if (isOneShot) {
-        await supabase.from('attendance_logs').insert({
-          'user_id': userId,
-          'activity_type': _selectedActivity,
-          'status': statusVal,
-          'check_in_lat': pos.latitude,
-          'check_in_lng': pos.longitude,
-          'check_in_img_url': imgUrl,
-          'check_in_time': nowStr,
-          'check_out_lat': pos.latitude,
-          'check_out_lng': pos.longitude,
-          'check_out_img_url': imgUrl,
-          'check_out_time': nowStr,
-          'is_active': false,
-          'semester': _semester,
-          'batch': _batch,
-          'field_work_type': null,
-        });
+      if (uploadSuccess) {
+        // --- ONLINE FLOW ---
+        if (isOneShot) {
+          await supabase.from('attendance_logs').insert({
+            'user_id': userId,
+            'activity_type': _selectedActivity,
+            'status': statusVal,
+            'check_in_lat': pos.latitude,
+            'check_in_lng': pos.longitude,
+            'check_in_img_url': imgUrl,
+            'check_in_time': nowStr,
+            'check_out_lat': pos.latitude,
+            'check_out_lng': pos.longitude,
+            'check_out_img_url': imgUrl,
+            'check_out_time': nowStr,
+            'is_active': false,
+            'semester': _semester,
+            'batch': _batch,
+            'field_work_type': null,
+          });
 
-        setState(() {
-          _activeRecordId = null;
-          _isCheckIn = true;
-        });
+          setState(() {
+            _activeRecordId = null;
+            _isCheckIn = true;
+            _isOffline = false;
+          });
+        } else {
+          if (_isCheckIn) {
+            final res = await supabase
+                .from('attendance_logs')
+                .insert({
+                  'user_id': userId,
+                  'activity_type': _selectedActivity,
+                  'status': 'Present',
+                  'check_in_lat': pos.latitude,
+                  'check_in_lng': pos.longitude,
+                  'check_in_img_url': imgUrl,
+                  'check_in_time': nowStr,
+                  'is_active': true,
+                  'semester': _semester,
+                  'batch': _batch,
+                  'field_work_type': _selectedActivity == 'Field Work'
+                      ? _selectedFieldWorkType
+                      : null,
+                })
+                .select()
+                .single();
+
+            setState(() {
+              _activeRecordId = res['id'];
+              _activeCheckInTime = nowStr;
+              _isCheckIn = false;
+              _isOffline = false;
+            });
+          } else {
+            double hoursLogged = 0.0;
+            String? checkInTimeStr = _activeCheckInTime;
+
+            if (checkInTimeStr == null) {
+              final record = await supabase
+                  .from('attendance_logs')
+                  .select('check_in_time')
+                  .eq('id', _activeRecordId!)
+                  .maybeSingle();
+              if (record != null) {
+                checkInTimeStr = record['check_in_time']?.toString();
+              }
+            }
+
+            if (checkInTimeStr != null) {
+              try {
+                final checkIn = DateTime.parse(checkInTimeStr).toUtc();
+                final checkOut = DateTime.parse(nowStr).toUtc();
+                final diff = checkOut.difference(checkIn);
+                hoursLogged = double.parse(
+                  (diff.inMinutes / 60.0).toStringAsFixed(2),
+                );
+                if (hoursLogged < 0) {
+                  hoursLogged = 0.0;
+                }
+              } catch (_) {}
+            }
+
+            await supabase
+                .from('attendance_logs')
+                .update({
+                  'check_out_time': nowStr,
+                  'check_out_lat': pos.latitude,
+                  'check_out_lng': pos.longitude,
+                  'check_out_img_url': imgUrl,
+                  'is_active': false,
+                  'hours_logged': hoursLogged,
+                })
+                .eq('id', _activeRecordId!);
+
+            setState(() {
+              _activeRecordId = null;
+              _activeCheckInTime = null;
+              _isCheckIn = true;
+              _isOffline = false;
+            });
+          }
+        }
+
+        await _saveCache();
+        await _checkActiveSession();
+
+        String snackMessage = "Action recorded successfully!";
+        if (_selectedActivity == 'Report') {
+          snackMessage = "Report submitted successfully!";
+        } else if (_selectedActivity == 'Conference') {
+          snackMessage = "Presented successfully!";
+        } else {
+          snackMessage = _isCheckIn
+              ? "Checked Out successfully!"
+              : "Checked In successfully!";
+        }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              snackMessage,
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+            ),
+            backgroundColor:
+                (_selectedActivity == 'Report' ||
+                    _selectedActivity == 'Conference' ||
+                    !_isCheckIn)
+                ? Colors.teal
+                : Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       } else {
-        if (_isCheckIn) {
-          final res = await supabase
-              .from('attendance_logs')
-              .insert({
+        // --- OFFLINE FLOW (NO INTERNET) ---
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final logId = isOneShot ? _generateUuidV4() : (_isCheckIn ? _generateUuidV4() : _activeRecordId!);
+        
+        final localPhotoPath = '${appDocDir.path}/offline_${logId}_${(_isCheckIn || isOneShot) ? 'in' : 'out'}.jpg';
+        await File(photo.path).copy(localPhotoPath);
+
+        final prefs = await SharedPreferences.getInstance();
+        final queueStr = prefs.getString('pending_attendance_logs');
+        final List<dynamic> queue = queueStr != null ? jsonDecode(queueStr) : [];
+
+        double hoursLogged = 0.0;
+
+        if (isOneShot) {
+          final localLog = {
+            'id': logId,
+            'user_id': userId,
+            'activity_type': _selectedActivity,
+            'status': statusVal,
+            'check_in_lat': pos.latitude,
+            'check_in_lng': pos.longitude,
+            'check_in_local_path': localPhotoPath,
+            'check_in_img_url': null,
+            'check_in_time': nowStr,
+            'check_out_lat': pos.latitude,
+            'check_out_lng': pos.longitude,
+            'check_out_local_path': localPhotoPath,
+            'check_out_img_url': null,
+            'check_out_time': nowStr,
+            'is_active': false,
+            'semester': _semester,
+            'batch': _batch,
+            'field_work_type': null,
+            'hours_logged': 0.0,
+          };
+          queue.add(localLog);
+          
+          if (_selectedActivity == 'Report') {
+            _reportsTotal += 1;
+          } else {
+            _confAttended += 1;
+          }
+
+          setState(() {
+            _activeRecordId = null;
+            _isCheckIn = true;
+          });
+        } else {
+          if (_isCheckIn) {
+            final localLog = {
+              'id': logId,
+              'user_id': userId,
+              'activity_type': _selectedActivity,
+              'status': 'Present',
+              'check_in_lat': pos.latitude,
+              'check_in_lng': pos.longitude,
+              'check_in_local_path': localPhotoPath,
+              'check_in_img_url': null,
+              'check_in_time': nowStr,
+              'check_out_lat': null,
+              'check_out_lng': null,
+              'check_out_local_path': null,
+              'check_out_img_url': null,
+              'check_out_time': null,
+              'is_active': true,
+              'semester': _semester,
+              'batch': _batch,
+              'field_work_type': _selectedActivity == 'Field Work'
+                  ? _selectedFieldWorkType
+                  : null,
+              'hours_logged': 0.0,
+            };
+            queue.add(localLog);
+
+            setState(() {
+              _activeRecordId = logId;
+              _activeCheckInTime = nowStr;
+              _isCheckIn = false;
+            });
+          } else {
+            int logIndex = queue.indexWhere((l) => l['id'] == _activeRecordId);
+            String? checkInTimeStr = _activeCheckInTime;
+
+            if (checkInTimeStr != null) {
+              try {
+                final checkIn = DateTime.parse(checkInTimeStr).toUtc();
+                final checkOut = DateTime.parse(nowStr).toUtc();
+                final diff = checkOut.difference(checkIn);
+                hoursLogged = double.parse((diff.inMinutes / 60.0).toStringAsFixed(2));
+                if (hoursLogged < 0) hoursLogged = 0.0;
+              } catch (_) {}
+            }
+
+            if (logIndex != -1) {
+              final localLog = Map<String, dynamic>.from(queue[logIndex]);
+              localLog['check_out_lat'] = pos.latitude;
+              localLog['check_out_lng'] = pos.longitude;
+              localLog['check_out_local_path'] = localPhotoPath;
+              localLog['check_out_time'] = nowStr;
+              localLog['is_active'] = false;
+              localLog['hours_logged'] = hoursLogged;
+              queue[logIndex] = localLog;
+            } else {
+              final localLog = {
+                'id': _activeRecordId,
                 'user_id': userId,
                 'activity_type': _selectedActivity,
                 'status': 'Present',
-                'check_in_lat': pos.latitude,
-                'check_in_lng': pos.longitude,
-                'check_in_img_url': imgUrl,
-                'check_in_time': nowStr,
-                'is_active': true,
+                'check_in_lat': null,
+                'check_in_lng': null,
+                'check_in_local_path': null,
+                'check_in_img_url': null,
+                'check_in_time': checkInTimeStr,
+                'check_out_lat': pos.latitude,
+                'check_out_lng': pos.longitude,
+                'check_out_local_path': localPhotoPath,
+                'check_out_img_url': null,
+                'check_out_time': nowStr,
+                'is_active': false,
                 'semester': _semester,
                 'batch': _batch,
                 'field_work_type': _selectedActivity == 'Field Work'
                     ? _selectedFieldWorkType
                     : null,
-              })
-              .select()
-              .single();
-
-          setState(() {
-            _activeRecordId = res['id'];
-            _activeCheckInTime = nowStr;
-            _isCheckIn = false;
-          });
-        } else {
-          double hoursLogged = 0.0;
-          String? checkInTimeStr = _activeCheckInTime;
-
-          if (checkInTimeStr == null) {
-            final record = await supabase
-                .from('attendance_logs')
-                .select('check_in_time')
-                .eq('id', _activeRecordId!)
-                .maybeSingle();
-            if (record != null) {
-              checkInTimeStr = record['check_in_time']?.toString();
-            }
-          }
-
-          if (checkInTimeStr != null) {
-            try {
-              final checkIn = DateTime.parse(checkInTimeStr).toUtc();
-              final checkOut = DateTime.parse(nowStr).toUtc();
-              final diff = checkOut.difference(checkIn);
-              hoursLogged = double.parse(
-                (diff.inMinutes / 60.0).toStringAsFixed(2),
-              );
-              if (hoursLogged < 0) {
-                hoursLogged = 0.0;
-              }
-            } catch (_) {}
-          }
-
-          await supabase
-              .from('attendance_logs')
-              .update({
-                'check_out_time': nowStr,
-                'check_out_lat': pos.latitude,
-                'check_out_lng': pos.longitude,
-                'check_out_img_url': imgUrl,
-                'is_active': false,
                 'hours_logged': hoursLogged,
-              })
-              .eq('id', _activeRecordId!);
+              };
+              queue.add(localLog);
+            }
 
-          setState(() {
-            _activeRecordId = null;
-            _activeCheckInTime = null;
-            _isCheckIn = true;
-          });
+            _semesterHours += hoursLogged;
+
+            setState(() {
+              _activeRecordId = null;
+              _activeCheckInTime = null;
+              _isCheckIn = true;
+            });
+          }
         }
-      }
 
-      await _checkActiveSession();
+        await prefs.setString('pending_attendance_logs', jsonEncode(queue));
+        
+        setState(() {
+          _pendingSyncCount = queue.length;
+          _isOffline = true;
+        });
 
-      String snackMessage = "Action recorded successfully!";
-      if (_selectedActivity == 'Report') {
-        snackMessage = "Report submitted successfully!";
-      } else if (_selectedActivity == 'Conference') {
-        snackMessage = "Presented successfully!";
-      } else {
-        snackMessage = _isCheckIn
-            ? "Checked Out successfully!"
-            : "Checked In successfully!";
-      }
+        await _saveCache();
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            snackMessage,
-            style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+        String snackMessage = "Action recorded offline successfully!";
+        if (_selectedActivity == 'Report') {
+          snackMessage = "Report saved offline successfully!";
+        } else if (_selectedActivity == 'Conference') {
+          snackMessage = "Presented offline successfully!";
+        } else {
+          snackMessage = _isCheckIn
+              ? "Checked Out offline successfully!"
+              : "Checked In offline successfully!";
+        }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "$snackMessage (Awaiting sync)",
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+            ),
+            backgroundColor: Colors.orange[800],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          backgroundColor:
-              (_selectedActivity == 'Report' ||
-                  _selectedActivity == 'Conference' ||
-                  !_isCheckIn)
-              ? Colors.teal
-              : Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (_isNetworkError(e)) {
+        setState(() {
+          _isOffline = true;
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "No Internet Connection. Please try again.",
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -910,13 +1448,92 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
     final String clockedHoursText =
         "${semHrsInt.toString().padLeft(2, '0')}:${semMins.toString().padLeft(2, '0')}";
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Column(
+      children: [
+        if (_isOffline)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: const Color(0xFFE65100), // Pinned warning color (Deep Orange)
+            child: Row(
+              children: [
+                const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "Bad internet or no internet, switching to offline mode",
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+            if (_pendingSyncCount > 0) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD), // Blue 50
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF90CAF9), width: 1), // Blue 200
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.cloud_upload_outlined, color: Color(0xFF1E88E5), size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "$_pendingSyncCount log(s) waiting to sync.",
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF1E88E5),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    _isSyncing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF1E88E5),
+                            ),
+                          )
+                        : TextButton(
+                            onPressed: _syncOfflineLogs,
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              backgroundColor: const Color(0xFF1E88E5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              "SYNC NOW",
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            ],
             // Unified Statistics Card
             // _buildUnifiedStatsCard(clockedHoursText),
             const SizedBox(height: 24),
@@ -1015,7 +1632,10 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+],
+);
   }
 }
 
