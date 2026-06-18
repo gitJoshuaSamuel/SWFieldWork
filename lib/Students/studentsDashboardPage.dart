@@ -3,8 +3,7 @@ import 'studentFilteredLogsPage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import '../widgets/adaptive_map_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AttendanceMainPage extends StatelessWidget {
@@ -1566,76 +1565,12 @@ class AttendanceLogsView extends StatelessWidget {
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
                 ),
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: LatLng(
-                      log['check_in_lat'],
-                      log['check_in_lng'],
-                    ),
-                    initialZoom: 15,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.joshua.socialworkFieldWork',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        // Check In Marker
-                        Marker(
-                          point: LatLng(
-                            log['check_in_lat'],
-                            log['check_in_lng'],
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const Icon(
-                                Icons.location_on_rounded,
-                                color: Colors.green,
-                                size: 30,
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Check Out Marker
-                        if (log['check_out_lat'] != null)
-                          Marker(
-                            point: LatLng(
-                              log['check_out_lat'],
-                              log['check_out_lng'],
-                            ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Container(
-                                  width: 34,
-                                  height: 34,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.location_on_rounded,
-                                  color: Colors.red,
-                                  size: 30,
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                child: AdaptiveMapView(
+                  checkInLat: log['check_in_lat'],
+                  checkInLng: log['check_in_lng'],
+                  checkOutLat: log['check_out_lat'],
+                  checkOutLng: log['check_out_lng'],
+                  largeMarkers: true,
                 ),
               ),
             ),

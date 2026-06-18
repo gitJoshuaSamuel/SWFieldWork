@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import '../widgets/adaptive_map_view.dart';
 
 class StudentFilteredLogsPage extends StatefulWidget {
   final String filterActivity;
@@ -482,70 +481,12 @@ class _StudentFilteredLogsPageState extends State<StudentFilteredLogsPage> {
                                       ),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child: FlutterMap(
-                                          options: MapOptions(
-                                            initialCenter: LatLng(log['check_in_lat'], log['check_in_lng']),
-                                            initialZoom: 15,
-                                          ),
-                                          children: [
-                                            TileLayer(
-                                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                              userAgentPackageName: 'com.joshua.socialworkFieldWork',
-                                            ),
-                                            MarkerLayer(
-                                              markers: [
-                                                // Check In Pin
-                                                Marker(
-                                                  point: LatLng(log['check_in_lat'], log['check_in_lng']),
-                                                  child: Stack(
-                                                    alignment: Alignment.center,
-                                                    children: [
-                                                      Container(
-                                                        width: 32,
-                                                        height: 32,
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.green.withValues(alpha: 0.2),
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                      ),
-                                                      const Icon(
-                                                        Icons.location_on_rounded,
-                                                        color: Colors.green,
-                                                        size: 26,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                // Check Out Pin
-                                                if (log['check_out_lat'] != null)
-                                                  Marker(
-                                                    point: LatLng(log['check_out_lat'], log['check_out_lng']),
-                                                    child: Stack(
-                                                      alignment: Alignment.center,
-                                                      children: [
-                                                        Container(
-                                                          width: 32,
-                                                          height: 32,
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.red.withValues(alpha: 0.2),
-                                                            shape: BoxShape.circle,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                if (log['check_out_lat'] != null)
-                                                  Marker(
-                                                    point: LatLng(log['check_out_lat'], log['check_out_lng']),
-                                                    child: const Icon(
-                                                      Icons.location_on_rounded,
-                                                      color: Colors.red,
-                                                      size: 26,
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ],
+                                        child: AdaptiveMapView(
+                                          checkInLat: log['check_in_lat'],
+                                          checkInLng: log['check_in_lng'],
+                                          checkOutLat: log['check_out_lat'],
+                                          checkOutLng: log['check_out_lng'],
+                                          largeMarkers: false,
                                         ),
                                       ),
                                     ),

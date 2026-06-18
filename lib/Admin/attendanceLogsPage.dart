@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import '../widgets/adaptive_map_view.dart';
 
 class AttendanceLogsPage extends StatefulWidget {
   const AttendanceLogsPage({super.key});
@@ -453,30 +452,12 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: FlutterMap(
-                            options: MapOptions(
-                              initialCenter: LatLng(log['check_in_lat'], log['check_in_lng']),
-                              initialZoom: 15,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.joshua.socialworkFieldWork',
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: LatLng(log['check_in_lat'], log['check_in_lng']),
-                                    child: const Icon(Icons.location_on, color: Colors.green, size: 40),
-                                  ),
-                                  if (log['check_out_lat'] != null)
-                                    Marker(
-                                      point: LatLng(log['check_out_lat'], log['check_out_lng']),
-                                      child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                                    ),
-                                ],
-                              ),
-                            ],
+                          child: AdaptiveMapView(
+                            checkInLat: log['check_in_lat'],
+                            checkInLng: log['check_in_lng'],
+                            checkOutLat: log['check_out_lat'],
+                            checkOutLng: log['check_out_lng'],
+                            largeMarkers: true,
                           ),
                         ),
                       ),
