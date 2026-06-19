@@ -3,6 +3,9 @@ import 'package:field_work_2/Professor/professorLandingPage.dart';
 import 'package:field_work_2/Students/studentsLandingPage.dart';
 import 'package:field_work_2/login/login.dart';
 import 'package:field_work_2/login/signup.dart';
+import 'package:field_work_2/landing/landing_page.dart';
+import 'package:field_work_2/landing/privacy_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -29,6 +32,7 @@ class MyApp extends StatelessWidget {
         '/admin-landing': (context) => const AdminLandingPage(),
         '/professors-landing': (context) => const ProfessorLandingPage(),
         '/students-landing': (context) => const Studentslandingpage(),
+        '/privacy': (context) => const PrivacyPage(),
       },
       theme: ThemeData(
         appBarTheme: AppBarTheme(
@@ -41,7 +45,20 @@ class MyApp extends StatelessWidget {
           surface: Colors.grey[50], // The main background color
         ),
       ),
-      home: const Login(),
+      home: const InitialScreen(),
     );
+  }
+}
+
+class InitialScreen extends StatelessWidget {
+  const InitialScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const LandingPage();
+    } else {
+      return const Login();
+    }
   }
 }

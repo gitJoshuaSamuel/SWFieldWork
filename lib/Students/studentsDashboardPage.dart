@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'studentFilteredLogsPage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -603,12 +604,13 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
       return;
     }
 
-    // --- STANDARD FLOW (Requires Location & Camera Photo) ---
-    // 1. Check/Request Permissions
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
+    // 1. Check/Request Permissions (skipped on Web because Safari doesn't support the Permissions API)
+    if (!kIsWeb) {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
     }
 
     // 2. Open Camera Directly (mandatory for all actions)

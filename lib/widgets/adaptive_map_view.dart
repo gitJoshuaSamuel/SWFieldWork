@@ -42,9 +42,8 @@ class _AdaptiveMapViewState extends State<AdaptiveMapView> {
   }
 
   Future<void> _determineMapSystem() async {
-    // Google Maps is only supported on mobile platforms in this app context.
-    // Web falls back to FlutterMap to avoid any API billing.
-    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+    // 1. Web falls back to FlutterMap (OpenStreetMap) to ensure zero-cost operation.
+    if (kIsWeb) {
       setState(() {
         _useGoogleMaps = false;
         _checkingServices = false;
@@ -52,31 +51,40 @@ class _AdaptiveMapViewState extends State<AdaptiveMapView> {
       return;
     }
 
-    // On Android, verify that Google Play Services are available
-    if (Platform.isAndroid) {
-      try {
-        final GooglePlayServicesAvailability availability = await GoogleApiAvailability.instance
-            .checkGooglePlayServicesAvailability();
-        if (availability != GooglePlayServicesAvailability.success) {
-          debugPrint("Google Play Services not available: $availability. Falling back to FlutterMap.");
+    // 2. Google Maps is supported on native mobile platforms (Android & iOS)
+    if (Platform.isAndroid || Platform.isIOS) {
+      if (Platform.isAndroid) {
+        try {
+          final GooglePlayServicesAvailability availability = await GoogleApiAvailability.instance
+              .checkGooglePlayServicesAvailability();
+          if (availability != GooglePlayServicesAvailability.success) {
+            debugPrint("Google Play Services not available: $availability. Falling back to FlutterMap.");
+            setState(() {
+              _useGoogleMaps = false;
+              _checkingServices = false;
+            });
+            return;
+          }
+        } catch (e) {
+          debugPrint("Error checking Google Play Services: $e. Falling back to FlutterMap.");
           setState(() {
             _useGoogleMaps = false;
             _checkingServices = false;
           });
           return;
         }
-      } catch (e) {
-        debugPrint("Error checking Google Play Services: $e. Falling back to FlutterMap.");
-        setState(() {
-          _useGoogleMaps = false;
-          _checkingServices = false;
-        });
-        return;
       }
+
+      setState(() {
+        _useGoogleMaps = true;
+        _checkingServices = false;
+      });
+      return;
     }
 
+    // 3. Fallback to FlutterMap for desktop native (Windows/macOS/Linux)
     setState(() {
-      _useGoogleMaps = true;
+      _useGoogleMaps = false;
       _checkingServices = false;
     });
   }
