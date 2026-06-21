@@ -162,13 +162,6 @@ class StudentProfileDetailsPage extends StatelessWidget {
                   value: profile['agency_supervisor'],
                   color: Colors.teal,
                 ),
-                _buildDivider(),
-                _buildDetailTile(
-                  icon: Icons.person_pin_rounded,
-                  label: "Related Professor",
-                  value: profile['related_professor'],
-                  color: Colors.deepPurpleAccent,
-                ),
               ]),
               const SizedBox(height: 24),
 

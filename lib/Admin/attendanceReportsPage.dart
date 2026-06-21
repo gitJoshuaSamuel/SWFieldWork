@@ -218,7 +218,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         final status = log['status']?.toString() ?? '';
         final checkInStr = log['check_in_time']?.toString();
         final checkOutStr = log['check_out_time']?.toString();
-        final fwType = log['field_work_type']?.toString() ?? 'Standard';
+        final fwType = log['field_work_type']?.toString() ?? 'Regular';
 
         final DateTime? checkIn = checkInStr != null ? DateTime.parse(checkInStr).toLocal() : null;
         final DateTime? checkOut = checkOutStr != null ? DateTime.parse(checkOutStr).toLocal() : null;

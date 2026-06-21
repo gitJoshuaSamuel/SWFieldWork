@@ -326,30 +326,73 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    // Photo Section
+                    // Photos Section
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Logged Image",
+                          Text("Logged Images",
                               style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[700])),
                           const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              color: Colors.grey[100],
-                              width: double.infinity,
-                              height: 200,
-                              child: log['check_in_img_url'] != null
-                                  ? Image.network(
-                                      log['check_in_img_url']!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Center(
-                                          child: Icon(Icons.broken_image_rounded, size: 48, color: Colors.grey)),
-                                    )
-                                  : const Center(child: Icon(Icons.person_outline_rounded, size: 48, color: Colors.grey)),
-                            ),
+                          Row(
+                            children: [
+                              // Check-in Picture
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Check in picture",
+                                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+                                    const SizedBox(height: 4),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        color: Colors.grey[100],
+                                        width: double.infinity,
+                                        height: 150,
+                                        child: log['check_in_img_url'] != null
+                                            ? Image.network(
+                                                log['check_in_img_url']!,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => const Center(
+                                                    child: Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey)),
+                                              )
+                                            : const Center(child: Icon(Icons.person_outline_rounded, size: 36, color: Colors.grey)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // Check-out Picture
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Check out picture",
+                                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+                                    const SizedBox(height: 4),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        color: Colors.grey[100],
+                                        width: double.infinity,
+                                        height: 150,
+                                        child: log['check_out_img_url'] != null
+                                            ? Image.network(
+                                                log['check_out_img_url']!,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => const Center(
+                                                    child: Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey)),
+                                              )
+                                            : const Center(child: Icon(Icons.person_outline_rounded, size: 36, color: Colors.grey)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

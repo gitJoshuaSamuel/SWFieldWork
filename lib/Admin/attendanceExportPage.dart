@@ -141,7 +141,7 @@ class _AttendanceExportPageState extends State<AttendanceExportPage> {
 
       // 3. Field Work Type Filter (Applicable only if Activity is All or Field Work)
       if ((_selectedActivity == 'All' || _selectedActivity == 'Field Work') && _selectedFieldWorkType != 'All') {
-        final fwType = log['field_work_type'] ?? 'Standard';
+        final fwType = log['field_work_type'] ?? 'Regular';
         if (fwType.toString().toLowerCase() != _selectedFieldWorkType.toLowerCase()) {
           return false;
         }
@@ -280,7 +280,7 @@ class _AttendanceExportPageState extends State<AttendanceExportPage> {
           _wrapCell(profile['batch'] ?? ''),
           _wrapCell(log['semester'] ?? profile['semester'] ?? ''),
           _wrapCell(log['activity_type'] ?? ''),
-          _wrapCell(log['field_work_type'] ?? 'Standard'),
+          _wrapCell(log['field_work_type'] ?? 'Regular'),
           _wrapCell(dateStr),
           _wrapCell(checkInStr),
           _wrapCell(checkOutStr),
@@ -488,7 +488,7 @@ class _AttendanceExportPageState extends State<AttendanceExportPage> {
                               _buildFilterDropdown(
                                 label: "Field Work Type",
                                 value: _selectedFieldWorkType,
-                                items: const ['All', 'Standard', 'Additional', 'Compensatory'],
+                                items: const ['All', 'Regular', 'Additional', 'Compensatory'],
                                 onChanged: (val) => setState(() => _selectedFieldWorkType = val!),
                               ),
                             ],

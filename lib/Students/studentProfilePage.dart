@@ -321,11 +321,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         l['status'] != 'Absent'
     ).length;
 
-    final int fwStandard = semesterLogs.where((l) =>
+    final int fwRegular = semesterLogs.where((l) =>
         l['activity_type'] == 'Field Work' &&
         l['check_out_time'] != null &&
         l['status'] != 'Absent' &&
-        (l['field_work_type'] == 'Standard' || l['field_work_type'] == null)
+        (l['field_work_type'] == 'Regular' || l['field_work_type'] == 'Standard' || l['field_work_type'] == null)
     ).length;
 
     final int fwAdditional = semesterLogs.where((l) =>
@@ -611,7 +611,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildDetailBadge("Standard: $fwStandard", Colors.blueAccent),
+                          _buildDetailBadge("Regular: $fwRegular", Colors.blueAccent),
                           _buildDetailBadge("Additional: $fwAdditional", Colors.teal),
                           _buildDetailBadge("Compensatory: $fwCompensatory", Colors.orange),
                         ],

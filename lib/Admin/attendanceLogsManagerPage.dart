@@ -27,9 +27,9 @@ class _AttendanceLogsManagerPageState extends State<AttendanceLogsManagerPage> {
   final TextEditingController _searchController = TextEditingController();
 
   // Dialog Options
-  final List<String> _statusOptions = ['Present', 'Absent', 'On Time', 'Late', 'Compensation'];
-  final List<String> _activityOptions = ['Field Work', 'Conference', 'Additional Field Work', 'Compensation'];
-  final List<String> _fieldWorkTypeOptions = ['Regular', 'Holiday'];
+  final List<String> _statusOptions = ['Present', 'Absent', 'On Time', 'Late', 'Holiday'];
+  final List<String> _activityOptions = ['Field Work', 'Conference', 'Report'];
+  final List<String> _fieldWorkTypeOptions = ['Regular', 'Compensatory', 'Additional', 'Holiday'];
 
   @override
   void initState() {
@@ -375,8 +375,8 @@ class _AttendanceLogsManagerPageState extends State<AttendanceLogsManagerPage> {
         return Colors.redAccent;
       case 'Late':
         return Colors.orange;
-      case 'Compensation':
-        return Colors.indigo;
+      case 'Holiday':
+        return const Color(0xFFE65100);
       default:
         return Colors.grey;
     }
@@ -388,10 +388,8 @@ class _AttendanceLogsManagerPageState extends State<AttendanceLogsManagerPage> {
         return Colors.indigo[700]!;
       case 'Conference':
         return Colors.purple[700]!;
-      case 'Additional Field Work':
+      case 'Report':
         return Colors.teal[700]!;
-      case 'Compensation':
-        return Colors.blue[700]!;
       default:
         return Colors.grey[700]!;
     }
@@ -784,7 +782,9 @@ class _AttendanceLogsManagerPageState extends State<AttendanceLogsManagerPage> {
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
                                               child: Text(
-                                                activity,
+                                                activity == 'Field Work' && log['field_work_type'] != null
+                                                    ? 'Field Work (${log['field_work_type']})'
+                                                    : activity,
                                                 style: GoogleFonts.inter(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,

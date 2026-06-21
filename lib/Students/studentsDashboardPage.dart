@@ -32,7 +32,7 @@ class AttendanceTrackerTab extends StatefulWidget {
 class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
   final supabase = Supabase.instance.client;
   String _selectedActivity = 'Field Work';
-  String _selectedFieldWorkType = 'Standard';
+  String _selectedFieldWorkType = 'Regular';
   bool _isCheckIn = true;
   String? _activeRecordId;
   String? _activeCheckInTime;
@@ -129,7 +129,10 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
         _activeRecordId = session['activeRecordId'] as String?;
         _activeCheckInTime = session['activeCheckInTime'] as String?;
         _selectedActivity = session['selectedActivity'] as String? ?? 'Field Work';
-        _selectedFieldWorkType = session['selectedFieldWorkType'] as String? ?? 'Standard';
+        final cachedFwType = session['selectedFieldWorkType'] as String? ?? 'Regular';
+        _selectedFieldWorkType = ['Regular', 'Compensatory', 'Additional'].contains(cachedFwType)
+            ? cachedFwType
+            : 'Regular';
         _isCheckIn = session['isCheckIn'] as bool? ?? true;
       }
       
@@ -426,8 +429,10 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
               _activeCheckInTime = lastRecord['check_in_time']?.toString();
               _isCheckIn = false;
               _selectedActivity = lastRecord['activity_type'] ?? 'Field Work';
-              _selectedFieldWorkType =
-                  lastRecord['field_work_type'] ?? 'Standard';
+              final dbFwType = lastRecord['field_work_type'] ?? 'Regular';
+              _selectedFieldWorkType = ['Regular', 'Compensatory', 'Additional'].contains(dbFwType)
+                  ? dbFwType
+                  : 'Regular';
               _isAbsent = false; // Reset toggle if we are currently checked in
               _isHoliday = false;
             });
@@ -1564,7 +1569,7 @@ class _AttendanceTrackerTabState extends State<AttendanceTrackerTab> {
                   label: "FIELD WORK TYPE",
                   icon: Icons.assignment_turned_in_outlined,
                   value: _selectedFieldWorkType,
-                  items: ['Standard', 'Compensatory', 'Additional'],
+                  items: ['Regular', 'Compensatory', 'Additional'],
                   onChanged: (v) {
                     setState(() {
                       _selectedFieldWorkType = v!;
