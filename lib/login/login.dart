@@ -1,4 +1,3 @@
-import 'package:field_work_2/login/signup.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -253,23 +252,6 @@ class _LoginState extends State<Login> {
                         style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const Signup()),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.black87,
-                      ),
-                      child: Text(
-                        'Are you a Professor? Signup here',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),

@@ -37,7 +37,7 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
     'Activity Type',
     'Status',
     'Student Name',
-    'Faculty Supervisor (Professor)'
+    'Faculty Supervisor (Professor)',
   ];
 
   @override
@@ -67,7 +67,9 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
         }
 
         if (code == null) {
-          final rawCode = user.userMetadata?['secret_code'] ?? user.userMetadata?['college_code'];
+          final rawCode =
+              user.userMetadata?['secret_code'] ??
+              user.userMetadata?['college_code'];
           if (rawCode != null) {
             code = int.tryParse(rawCode.toString());
           }
@@ -82,24 +84,30 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
               .select()
               .eq('role', 'Student');
 
-          final List<Map<String, dynamic>> allProfiles = List<Map<String, dynamic>>.from(studentsData);
+          final List<Map<String, dynamic>> allProfiles =
+              List<Map<String, dynamic>>.from(studentsData);
           _allStudents = allProfiles.where((p) {
             final pCode = p['college_code'] ?? p['secret_code'];
             return pCode?.toString() == code.toString();
           }).toList();
 
           // Sort students by name
-          _allStudents.sort((a, b) => (a['display_name']?.toString() ?? '')
-              .toLowerCase()
-              .compareTo((b['display_name']?.toString() ?? '').toLowerCase()));
+          _allStudents.sort(
+            (a, b) => (a['display_name']?.toString() ?? '')
+                .toLowerCase()
+                .compareTo((b['display_name']?.toString() ?? '').toLowerCase()),
+          );
 
           // 3. Fetch Attendance Logs
           final logsData = await supabase
               .from('attendance_logs')
-              .select('*, profiles(id, display_name, registration_no, college_code, secret_code, class, batch, semester, faculty_supervisor, agency_supervisor, organisation_placed)')
+              .select(
+                '*, profiles(id, display_name, registration_no, college_code, secret_code, class, batch, semester, faculty_supervisor, agency_supervisor, organisation_placed)',
+              )
               .order('check_in_time', ascending: false);
 
-          final List<Map<String, dynamic>> allLogs = List<Map<String, dynamic>>.from(logsData);
+          final List<Map<String, dynamic>> allLogs =
+              List<Map<String, dynamic>>.from(logsData);
           _allLogs = allLogs.where((log) {
             if (log['profiles'] == null) return false;
             final lCode = log['profiles']['college_code'];
@@ -153,10 +161,12 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            final List<Map<String, dynamic>> filteredModalStudents = _allStudents.where((student) {
-              final name = student['display_name']?.toString().toLowerCase() ?? '';
-              return name.contains(_studentPickerSearch.toLowerCase());
-            }).toList();
+            final List<Map<String, dynamic>> filteredModalStudents =
+                _allStudents.where((student) {
+                  final name =
+                      student['display_name']?.toString().toLowerCase() ?? '';
+                  return name.contains(_studentPickerSearch.toLowerCase());
+                }).toList();
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.75,
@@ -171,17 +181,30 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                 children: [
                   const SizedBox(height: 12),
                   Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2.5))),
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2.5),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Select Student", style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
-                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                        Text(
+                          "Select Student",
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ],
                     ),
                   ),
@@ -193,7 +216,10 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: Colors.grey[50],
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(color: Colors.grey[200]!),
@@ -214,7 +240,12 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                     child: ListView(
                       children: [
                         ListTile(
-                          title: Text("All Students", style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                          title: Text(
+                            "All Students",
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           selected: _selectedStudentId == null,
                           onTap: () {
                             setState(() {
@@ -229,9 +260,17 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                           final name = student['display_name'] ?? 'Student';
                           final regNo = student['registration_no'] ?? 'N/A';
                           return ListTile(
-                            title: Text(name, style: GoogleFonts.inter(fontSize: 14)),
-                            subtitle: Text("Reg: $regNo",
-                                style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500])),
+                            title: Text(
+                              name,
+                              style: GoogleFonts.inter(fontSize: 14),
+                            ),
+                            subtitle: Text(
+                              "Reg: $regNo",
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                              ),
+                            ),
                             selected: _selectedStudentId == sId,
                             onTap: () {
                               setState(() {
@@ -259,13 +298,24 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
     final regNo = profile['registration_no'] ?? 'N/A';
     final activityType = log['activity_type'] ?? 'Field Work';
     final status = log['status'] ?? 'Present';
-    final checkIn = log['check_in_time'] != null ? DateTime.parse(log['check_in_time']).toLocal() : null;
-    final checkOut = log['check_out_time'] != null ? DateTime.parse(log['check_out_time']).toLocal() : null;
+    final checkIn = log['check_in_time'] != null
+        ? DateTime.parse(log['check_in_time']).toLocal()
+        : null;
+    final checkOut = log['check_out_time'] != null
+        ? DateTime.parse(log['check_out_time']).toLocal()
+        : null;
 
-    final dateStr = checkIn != null ? DateFormat('EEEE, dd MMMM yyyy').format(checkIn) : 'N/A';
-    final checkInStr = checkIn != null ? DateFormat('hh:mm a').format(checkIn) : '--:--';
-    final checkOutStr = checkOut != null ? DateFormat('hh:mm a').format(checkOut) : '--:--';
-    final hasCoords = log['check_in_lat'] != null && log['check_in_lng'] != null;
+    final dateStr = checkIn != null
+        ? DateFormat('EEEE, dd MMMM yyyy').format(checkIn)
+        : 'N/A';
+    final checkInStr = checkIn != null
+        ? DateFormat('hh:mm a').format(checkIn)
+        : '--:--';
+    final checkOutStr = checkOut != null
+        ? DateFormat('hh:mm a').format(checkOut)
+        : '--:--';
+    final hasCoords =
+        log['check_in_lat'] != null && log['check_in_lng'] != null;
 
     double hours = 0.0;
     if (log['hours_logged'] != null) {
@@ -278,7 +328,8 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
 
     final int h = hours.toInt();
     final int m = ((hours - h) * 60).round();
-    final String durationStr = "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+    final String durationStr =
+        "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
 
     showModalBottomSheet(
       context: context,
@@ -297,9 +348,13 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
           children: [
             const SizedBox(height: 12),
             Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2.5))),
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2.5),
+              ),
+            ),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -310,13 +365,27 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(display, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text("Reg: $regNo | $activityType | $dateStr",
-                            style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500])),
+                        Text(
+                          display,
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "Reg: $regNo | $activityType | $dateStr",
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
                 ],
               ),
             ),
@@ -332,8 +401,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Logged Images",
-                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                          Text(
+                            "Logged Images",
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -342,8 +417,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("Check in picture",
-                                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+                                    Text(
+                                      "Check in picture",
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
@@ -355,10 +436,23 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                             ? Image.network(
                                                 log['check_in_img_url']!,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) => const Center(
-                                                    child: Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey)),
+                                                errorBuilder: (_, __, ___) =>
+                                                    const Center(
+                                                      child: Icon(
+                                                        Icons
+                                                            .broken_image_rounded,
+                                                        size: 36,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    ),
                                               )
-                                            : const Center(child: Icon(Icons.person_outline_rounded, size: 36, color: Colors.grey)),
+                                            : const Center(
+                                                child: Icon(
+                                                  Icons.person_outline_rounded,
+                                                  size: 36,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
                                       ),
                                     ),
                                   ],
@@ -370,8 +464,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("Check out picture",
-                                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey[500])),
+                                    Text(
+                                      "Check out picture",
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
@@ -383,10 +483,23 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                             ? Image.network(
                                                 log['check_out_img_url']!,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) => const Center(
-                                                    child: Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey)),
+                                                errorBuilder: (_, __, ___) =>
+                                                    const Center(
+                                                      child: Icon(
+                                                        Icons
+                                                            .broken_image_rounded,
+                                                        size: 36,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    ),
                                               )
-                                            : const Center(child: Icon(Icons.person_outline_rounded, size: 36, color: Colors.grey)),
+                                            : const Center(
+                                                child: Icon(
+                                                  Icons.person_outline_rounded,
+                                                  size: 36,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
                                       ),
                                     ),
                                   ],
@@ -404,7 +517,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Log Details", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                          Text(
+                            "Log Details",
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -416,53 +536,137 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                             child: Column(
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text("Status", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
-                                    Text(status, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: _getStatusColor(status))),
+                                    Text(
+                                      "Status",
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    Text(
+                                      status,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _getStatusColor(status),
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 if (hours > 0 || checkOut != null) ...[
                                   const Divider(height: 16),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Total Time Logged", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
-                                      Text(durationStr, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                                      Text(
+                                        "Total Time Logged",
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      Text(
+                                        durationStr,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ],
                                 const Divider(height: 16),
                                 if (activityType == 'Field Work') ...[
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Check In Time", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
-                                      Text(checkInStr, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                      Text(
+                                        "Check In Time",
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      Text(
+                                        checkInStr,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   const Divider(height: 16),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Check Out Time", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
-                                      Text(checkOutStr, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                      Text(
+                                        "Check Out Time",
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      Text(
+                                        checkOutStr,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ] else if (activityType == 'Report') ...[
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Submission Time", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
-                                      Text(checkInStr, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                      Text(
+                                        "Submission Time",
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      Text(
+                                        checkInStr,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ] else if (activityType == 'Conference') ...[
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Attendance Time", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
-                                      Text(checkInStr, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                      Text(
+                                        "Attendance Time",
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      Text(
+                                        checkInStr,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -480,9 +684,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text("Location Coordinates",
-                              style:
-                                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                          child: Text(
+                            "Location Coordinates",
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -534,7 +743,11 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
       ),
       child: Text(
         type,
-        style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: color),
+        style: GoogleFonts.inter(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }
@@ -561,12 +774,22 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
     final regNo = profile['registration_no'] ?? 'N/A';
     final activityType = log['activity_type'] ?? 'Field Work';
     final status = log['status'] ?? 'Present';
-    final checkIn = log['check_in_time'] != null ? DateTime.parse(log['check_in_time']).toLocal() : null;
-    final checkOut = log['check_out_time'] != null ? DateTime.parse(log['check_out_time']).toLocal() : null;
+    final checkIn = log['check_in_time'] != null
+        ? DateTime.parse(log['check_in_time']).toLocal()
+        : null;
+    final checkOut = log['check_out_time'] != null
+        ? DateTime.parse(log['check_out_time']).toLocal()
+        : null;
 
-    final dateStr = checkIn != null ? DateFormat('dd/MM/yyyy').format(checkIn) : 'N/A';
-    final checkInStr = checkIn != null ? DateFormat('hh:mm a').format(checkIn) : '--:--';
-    final checkOutStr = checkOut != null ? DateFormat('hh:mm a').format(checkOut) : 'Active';
+    final dateStr = checkIn != null
+        ? DateFormat('dd/MM/yyyy').format(checkIn)
+        : 'N/A';
+    final checkInStr = checkIn != null
+        ? DateFormat('hh:mm a').format(checkIn)
+        : '--:--';
+    final checkOutStr = checkOut != null
+        ? DateFormat('hh:mm a').format(checkOut)
+        : 'Active';
 
     double hours = 0.0;
     if (log['hours_logged'] != null) {
@@ -579,7 +802,8 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
 
     final int h = hours.toInt();
     final int m = ((hours - h) * 60).round();
-    final String durationStr = "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+    final String durationStr =
+        "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
 
     return Card(
       elevation: 0,
@@ -603,7 +827,11 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                   Expanded(
                     child: Text(
                       display,
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                   _buildActivityChip(activityType),
@@ -613,13 +841,24 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Reg: $regNo | $dateStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[500])),
+                  Text(
+                    "Reg: $regNo | $dateStr",
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.grey[500],
+                    ),
+                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(status).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: _getStatusColor(status).withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Text(
                       status,
@@ -636,19 +875,42 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
               if (activityType == 'Field Work') ...[
                 Row(
                   children: [
-                    Icon(Icons.login_rounded, size: 12, color: Colors.green[600]),
+                    Icon(
+                      Icons.login_rounded,
+                      size: 12,
+                      color: Colors.green[600],
+                    ),
                     const SizedBox(width: 4),
-                    Text("In: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                    Text(
+                      "In: $checkInStr",
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Icon(Icons.logout_rounded, size: 12, color: checkOut != null ? Colors.red : Colors.orange),
+                    Icon(
+                      Icons.logout_rounded,
+                      size: 12,
+                      color: checkOut != null ? Colors.red : Colors.orange,
+                    ),
                     const SizedBox(width: 4),
-                    Text("Out: $checkOutStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                    Text(
+                      "Out: $checkOutStr",
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                   ],
                 ),
                 if (hours > 0 || checkOut != null) ...[
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blue[50],
                       borderRadius: BorderRadius.circular(6),
@@ -667,15 +929,28 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
               ] else if (activityType == 'Report') ...[
                 Row(
                   children: [
-                    Icon(Icons.description_rounded, size: 12, color: Colors.teal[600]),
+                    Icon(
+                      Icons.description_rounded,
+                      size: 12,
+                      color: Colors.teal[600],
+                    ),
                     const SizedBox(width: 4),
-                    Text("Report Submitted: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                    Text(
+                      "Report Submitted: $checkInStr",
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                   ],
                 ),
                 if (hours > 0) ...[
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.teal[50],
                       borderRadius: BorderRadius.circular(6),
@@ -694,15 +969,28 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
               ] else if (activityType == 'Conference') ...[
                 Row(
                   children: [
-                    Icon(Icons.forum_rounded, size: 12, color: Colors.purple[600]),
+                    Icon(
+                      Icons.forum_rounded,
+                      size: 12,
+                      color: Colors.purple[600],
+                    ),
                     const SizedBox(width: 4),
-                    Text("Conference In: $checkInStr", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700])),
+                    Text(
+                      "Conference In: $checkInStr",
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                   ],
                 ),
                 if (hours > 0) ...[
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.purple[50],
                       borderRadius: BorderRadius.circular(6),
@@ -726,11 +1014,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
     );
   }
 
-  Widget _buildGroupTree(List<Map<String, dynamic>> items, List<String> groupingFields, int fieldIndex) {
-    if (fieldIndex >= groupingFields.length || groupingFields[fieldIndex] == 'None') {
-      return Column(
-        children: items.map((log) => _buildLogCard(log)).toList(),
-      );
+  Widget _buildGroupTree(
+    List<Map<String, dynamic>> items,
+    List<String> groupingFields,
+    int fieldIndex,
+  ) {
+    if (fieldIndex >= groupingFields.length ||
+        groupingFields[fieldIndex] == 'None') {
+      return Column(children: items.map((log) => _buildLogCard(log)).toList());
     }
 
     final field = groupingFields[fieldIndex];
@@ -741,7 +1032,10 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
       if (field == 'Semester') {
         key = profile['semester']?.toString() ?? 'Unknown Semester';
       } else if (field == 'Batch') {
-        key = item['batch']?.toString() ?? profile['batch']?.toString() ?? 'Unknown Batch';
+        key =
+            item['batch']?.toString() ??
+            profile['batch']?.toString() ??
+            'Unknown Batch';
       } else if (field == 'Activity Type') {
         key = item['activity_type']?.toString() ?? 'Unknown Activity';
       } else if (field == 'Status') {
@@ -749,7 +1043,9 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
       } else if (field == 'Student Name') {
         key = profile['display_name']?.toString() ?? 'Unknown Student';
       } else if (field == 'Faculty Supervisor (Professor)') {
-        key = profile['faculty_supervisor']?.toString() ?? 'No Faculty Supervisor';
+        key =
+            profile['faculty_supervisor']?.toString() ??
+            'No Faculty Supervisor';
       }
       grouped.putIfAbsent(key, () => []);
       grouped[key]!.add(item);
@@ -766,7 +1062,10 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: themeColor.withValues(alpha: 0.15), width: 1.0),
+            side: BorderSide(
+              color: themeColor.withValues(alpha: 0.15),
+              width: 1.0,
+            ),
           ),
           color: themeColor.withValues(alpha: 0.02),
           child: ExpansionTile(
@@ -778,12 +1077,14 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                 color: themeColor,
               ),
             ),
-            childrenPadding: const EdgeInsets.only(left: 12, right: 8, bottom: 8),
+            childrenPadding: const EdgeInsets.only(
+              left: 12,
+              right: 8,
+              bottom: 8,
+            ),
             shape: const Border(),
             collapsedShape: const Border(),
-            children: [
-              _buildGroupTree(list, groupingFields, fieldIndex + 1),
-            ],
+            children: [_buildGroupTree(list, groupingFields, fieldIndex + 1)],
           ),
         );
       }).toList(),
@@ -797,11 +1098,19 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.assignment_turned_in_rounded, size: 48, color: Colors.grey[300]),
+            Icon(
+              Icons.assignment_turned_in_rounded,
+              size: 48,
+              color: Colors.grey[300],
+            ),
             const SizedBox(height: 12),
             Text(
               message,
-              style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500),
+              style: GoogleFonts.inter(
+                color: Colors.grey[500],
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -843,11 +1152,22 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
         try {
           final dt = DateTime.parse(checkInTimeStr).toLocal();
           if (_startDate != null) {
-            final startMidnight = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+            final startMidnight = DateTime(
+              _startDate!.year,
+              _startDate!.month,
+              _startDate!.day,
+            );
             if (dt.isBefore(startMidnight)) return false;
           }
           if (_endDate != null) {
-            final endMidnight = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+            final endMidnight = DateTime(
+              _endDate!.year,
+              _endDate!.month,
+              _endDate!.day,
+              23,
+              59,
+              59,
+            );
             if (dt.isAfter(endMidnight)) return false;
           }
         } catch (_) {
@@ -861,7 +1181,12 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
     }).toList();
 
     // Collect grouping fields in order
-    final List<String> groupingFields = [_groupLevel1, _groupLevel2, _groupLevel3, _groupLevel4];
+    final List<String> groupingFields = [
+      _groupLevel1,
+      _groupLevel2,
+      _groupLevel3,
+      _groupLevel4,
+    ];
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -871,7 +1196,10 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
           children: [
             // --- HEADER ---
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -885,13 +1213,18 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                   ),
                   IconButton(
                     onPressed: _fetchData,
-                    icon: const Icon(Icons.refresh_rounded, color: Colors.black),
+                    icon: const Icon(
+                      Icons.refresh_rounded,
+                      color: Colors.black,
+                    ),
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.white,
                       shadowColor: Colors.black.withValues(alpha: 0.05),
                       elevation: 4,
                       padding: const EdgeInsets.all(12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
@@ -921,29 +1254,46 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                               onTap: () => _showStudentPicker(context),
                               borderRadius: BorderRadius.circular(10),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.grey[50],
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.grey[200]!),
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
                                         _selectedStudentId == null
                                             ? "All Students"
                                             : _allStudents.firstWhere(
-                                                (s) => s['id']?.toString() == _selectedStudentId,
-                                                orElse: () => {'display_name': 'Select Student'},
-                                              )['display_name'] ?? 'Select Student',
+                                                    (s) =>
+                                                        s['id']?.toString() ==
+                                                        _selectedStudentId,
+                                                    orElse: () => {
+                                                      'display_name':
+                                                          'Select Student',
+                                                    },
+                                                  )['display_name'] ??
+                                                  'Select Student',
                                         style: GoogleFonts.inter(
-                                            fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[700],
+                                        ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    Icon(Icons.arrow_drop_down, color: Colors.grey[600], size: 16),
+                                    Icon(
+                                      Icons.arrow_drop_down,
+                                      color: Colors.grey[600],
+                                      size: 16,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -956,7 +1306,10 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                             onTap: () => _selectDateRange(context),
                             borderRadius: BorderRadius.circular(10),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.grey[50],
                                 borderRadius: BorderRadius.circular(10),
@@ -965,14 +1318,21 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.calendar_month_rounded, color: Colors.grey[600], size: 16),
+                                  Icon(
+                                    Icons.calendar_month_rounded,
+                                    color: Colors.grey[600],
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     _startDate == null || _endDate == null
                                         ? "Date Range"
                                         : "${DateFormat('dd/MM').format(_startDate!)} - ${DateFormat('dd/MM').format(_endDate!)}",
                                     style: GoogleFonts.inter(
-                                        fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[700],
+                                    ),
                                   ),
                                   if (_startDate != null) ...[
                                     const SizedBox(width: 4),
@@ -983,7 +1343,11 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                           _endDate = null;
                                         });
                                       },
-                                      child: const Icon(Icons.close_rounded, size: 14, color: Colors.red),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        size: 14,
+                                        color: Colors.red,
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -998,13 +1362,21 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                       ExpansionTile(
                         title: Text(
                           "Configure Grouping Accordions",
-                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                          ),
                         ),
                         leading: const Icon(Icons.layers_rounded, size: 18),
                         collapsedBackgroundColor: Colors.grey[50],
                         backgroundColor: Colors.grey[50],
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        collapsedShape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         childrenPadding: const EdgeInsets.all(12),
                         dense: true,
                         children: [
@@ -1015,7 +1387,8 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                   label: "Level 1 Group",
                                   value: _groupLevel1,
                                   items: _groupingOptions,
-                                  onChanged: (val) => setState(() => _groupLevel1 = val!),
+                                  onChanged: (val) =>
+                                      setState(() => _groupLevel1 = val!),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -1024,7 +1397,8 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                   label: "Level 2 Group",
                                   value: _groupLevel2,
                                   items: _groupingOptions,
-                                  onChanged: (val) => setState(() => _groupLevel2 = val!),
+                                  onChanged: (val) =>
+                                      setState(() => _groupLevel2 = val!),
                                 ),
                               ),
                             ],
@@ -1037,7 +1411,8 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                   label: "Level 3 Group",
                                   value: _groupLevel3,
                                   items: _groupingOptions,
-                                  onChanged: (val) => setState(() => _groupLevel3 = val!),
+                                  onChanged: (val) =>
+                                      setState(() => _groupLevel3 = val!),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -1046,7 +1421,8 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                                   label: "Level 4 Group",
                                   value: _groupLevel4,
                                   items: _groupingOptions,
-                                  onChanged: (val) => setState(() => _groupLevel4 = val!),
+                                  onChanged: (val) =>
+                                      setState(() => _groupLevel4 = val!),
                                 ),
                               ),
                             ],
@@ -1066,7 +1442,10 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
                   ? _buildEmptyState("No matching records found")
                   : ListView(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       children: [
                         _buildGroupTree(filteredLogs, groupingFields, 0),
                       ],
@@ -1089,7 +1468,11 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[600]),
+        labelStyle: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey[600],
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         filled: true,
         fillColor: Colors.white,
@@ -1103,15 +1486,19 @@ class _AttendanceLogsPageState extends State<AttendanceLogsPage> {
         ),
       ),
       dropdownColor: Colors.white,
-      style: GoogleFonts.inter(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.w500),
-      items: items.map((e) => DropdownMenuItem(
-        value: e,
-        child: Text(
-          e,
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
-      )).toList(),
+      style: GoogleFonts.inter(
+        fontSize: 11,
+        color: Colors.black87,
+        fontWeight: FontWeight.w500,
+      ),
+      items: items
+          .map(
+            (e) => DropdownMenuItem(
+              value: e,
+              child: Text(e, overflow: TextOverflow.ellipsis, maxLines: 1),
+            ),
+          )
+          .toList(),
       onChanged: onChanged,
     );
   }
